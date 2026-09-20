@@ -1,0 +1,32 @@
+= Captura ICMP con payload 55
+
+ifndef::capture-images-dir[:capture-images-dir: ../../../../build/captures]
+
+== Evidencia utilizada
+
+.Archivos y artefactos de la captura ICMP 55
+[cols="2,4"]
+|===
+|Guion |`scope-55.eth`
+|NPZ saneado |`data/captures/ethernet/20260913_031416_55.npz`
+|Artefactos |`build/captures/icmp-55.*`
+|===
+
+== Señal analógica y analizador lógico
+
+.Señal Ethernet diferencial de la prueba 55
+image::{capture-images-dir}/icmp-55_full.png[Señal analógica ICMP 55,align="center"]
+
+.Detalle de la señal analógica y decodificación Manchester
+image::{capture-images-dir}/icmp-55_overlay.png[Overlay analógico ICMP 55,align="center"]
+
+.Señal digital SPI y campos presentes en el cable
+image::{capture-images-dir}/icmp-55_spi.png[Comparación digital SPI y trama física ICMP 55,align="center"]
+
+== Salida HEX
+
+.Trama ICMP 55 reconstruida en hexadecimal
+[source,text]
+----
+include::../../../../build/captures/icmp-55.hex[]
+----

@@ -1,0 +1,32 @@
+= Captura ICMP con payload aa
+
+ifndef::capture-images-dir[:capture-images-dir: ../../../../build/captures]
+
+== Evidencia utilizada
+
+.Archivos y artefactos de la captura ICMP aa
+[cols="2,4"]
+|===
+|Guion |`scope-aa.eth`
+|NPZ saneado |`data/captures/ethernet/20260913_031449_aa.npz`
+|Artefactos |`build/captures/icmp-aa.*`
+|===
+
+== Señal analógica y analizador lógico
+
+.Señal Ethernet diferencial de la prueba aa
+image::{capture-images-dir}/icmp-aa_full.png[Señal analógica ICMP aa,align="center"]
+
+.Detalle de la señal analógica y decodificación Manchester
+image::{capture-images-dir}/icmp-aa_overlay.png[Overlay analógico ICMP aa,align="center"]
+
+.Señal digital SPI y campos presentes en el cable
+image::{capture-images-dir}/icmp-aa_spi.png[Comparación digital SPI y trama física ICMP aa,align="center"]
+
+== Salida HEX
+
+.Trama ICMP aa reconstruida en hexadecimal
+[source,text]
+----
+include::../../../../build/captures/icmp-aa.hex[]
+----

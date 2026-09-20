@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+REPO_DIR=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
+PYTHON="$REPO_DIR/build/cache/venv-demo/bin/python"
+
+if [ ! -x "$PYTHON" ]; then
+    echo "The demo environment is missing. Run first: $SCRIPT_DIR/setup-demo-capture" >&2
+    exit 1
+fi
+
+exec "$PYTHON" "$REPO_DIR/src/lab/capture_demo.py" "$@"

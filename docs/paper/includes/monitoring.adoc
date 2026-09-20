@@ -1,0 +1,268 @@
+[[monitoring]]
+= Seguimiento
+
+Todos los datos expuestos en este apartado se han obtenido decodificando los archivos que
+genera `scripts/generate-public-assets` a partir de los NPZ saneados.
+Los ocho NPZ saneados están juntos en `data/captures/ethernet/`. Para los tres ejemplos que se muestran a continuación, el generador reutiliza las capturas de ejecución
+`20260913_031915_00`, `20260913_121908_arp` y `20260913_122619_http`.
+
+.Longitud y contenido de las capturas analizadas
+[cols="2,1,1,3",options="header"]
+|===
+|Captura |En el cable |Trama |Contenido
+
+|`ping-00`
+|86 bytes
+|78 bytes
+|ICMP Echo Request con 32 bytes de payload `00`
+
+|`arp`
+|72 bytes
+|64 bytes
+|Petición ARP en difusión, con 18 bytes de relleno
+
+|`http`
+|72 bytes
+|64 bytes
+|Segmento TCP hacia el puerto 80, sin datos de aplicación, con 6 bytes de relleno
+|===
+
+Los ocho bytes de diferencia entre «en el cable» y «trama» son el preámbulo y el
+SFD. Aparecen porque la captura procede del medio físico y no de una interfaz de
+red, y son una de las cosas que el proyecto puede mostrar y Wireshark no.
+
+*Las tres tramas verifican su FCS.* La comprobación no es que el FCS coincida con
+el calculado, sino la propiedad más fuerte del CRC: calcular el CRC-32 sobre la
+trama *incluido* su FCS devuelve siempre la misma constante (<<ieee-802-3,IEEE 802.3>>).
+
+.FCS capturado y residuo CRC-32
+[cols="2,2,2",options="header"]
+|===
+|Captura |FCS en el cable |Residuo CRC-32
+
+|`ping-00` |`98 4f 9a 1c` |`0x2144DF1C`
+|`arp` |`02 d7 35 4a` |`0x2144DF1C`
+|`http` |`d0 70 ad 1e` |`0x2144DF1C`
+|===
+
+*Los checksums de las capas superiores verifican igual.* Recalcular un checksum
+de complemento a uno sobre un bloque que ya contiene un checksum correcto
+devuelve `0x0000` (<<rfc-1071-internet-checksum,RFC 1071>>). Las tres capturas lo cumplen en todas sus capas: IPv4 e ICMP en
+`ping-00`, IPv4 y TCP en `http`. ARP no lleva checksum propio y queda cubierto
+únicamente por el FCS.
+
+Esta comprobación asegura que las tramas capturadas son válidas y que el saneado no ha alterado su integridad.
+
+== Cobertura de la batería e intentos sin captura válida
+
+La batería Ethernet se dividió en siete guiones independientes: cinco peticiones
+ICMP con payload `00`, `55`, `aa` y `ff`, `increment`, una prueba ARP y una
+prueba HTTP. Separarlas permitía rearmar el osciloscopio para cada ventana. No
+todos los intentos produjeron una trama completa; repetir una adquisición no la
+convierte en una repetición estadística, sino que sustituye un intento fallido.
+
+.Intentos fallidos y capturas válidas por prueba
+[cols="2,3,3,4",options="header"]
+|===
+|Prueba |Intento sin trama válida |Captura válida final |Conclusión
+
+|ICMP `00`
+|`20260913_031338_00`: cinco ventanas, ninguna con trama completa
+|`20260913_031915_00`, adquisición 3
+|El primer intento se descarta; el segundo cubre el patrón
+
+|ICMP `55`
+|—
+|`20260913_031416_55`, adquisición 3
+|Trama de 78 bytes y FCS válido
+
+|ICMP `aa`
+|—
+|`20260913_031449_aa`, adquisición 5
+|Trama de 78 bytes y FCS válido
+
+|ICMP `ff`
+|`20260913_031522_ff`: cinco ventanas, ninguna con trama completa
+|`20260913_031956_ff`, adquisición 5
+|El primer intento se descarta; el segundo cubre el patrón
+
+|ICMP incremental
+|—
+|`20260913_031230_increment`, adquisición 3
+|Trama de 78 bytes y FCS válido
+
+|ARP
+|`20260917_215924_arp`: nueve ventanas, ninguna con trama completa
+|`20260913_121908_arp`, adquisición 5, y
+`20260917_221140_arp`, adquisición 3
+|Dos peticiones ARP completas de 64 bytes
+
+|HTTP
+|`20260913_122007_http`: nueve ventanas, ninguna con trama completa
+|`20260913_122619_http`, adquisición 5
+|Hay una trama TCP/80 válida, pero es un ACK sin payload; no es el `GET`
+|===
+
+Por tanto, los cinco patrones ICMP y ARP tienen al menos una captura física
+completa. La prueba HTTP está cubierta funcionalmente por el `GET` observado en
+SPI y las respuestas 200 del log, pero *se quedó sin una captura física válida
+del propio `GET`*. La trama publicable de esa sesión sólo demuestra la
+conversación TCP con el puerto 80.
+
+== Fichas individuales de las capturas
+
+Las fichas siguientes comparan la señal analógica del osciloscopio, la observación
+digital del bus SPI con Logic 2 y la trama reconstruida en hexadecimal, además de una demostración de que Wireshark interpreta y valida correctamente uno de los archivos PCAPNG generados.
+
+:capture-images-dir: ../../build/captures
+
+include::captures/icmp-00.adoc[leveloffset=+2]
+
+include::captures/icmp-55.adoc[leveloffset=+2]
+
+include::captures/icmp-aa.adoc[leveloffset=+2]
+
+include::captures/icmp-ff.adoc[leveloffset=+2]
+
+include::captures/icmp-increment.adoc[leveloffset=+2]
+
+include::captures/arp.adoc[leveloffset=+2]
+
+include::captures/http.adoc[leveloffset=+2]
+
+:capture-images-dir!:
+
+== Contraste capa a capa
+
+Se procede a realizar el contraste sobre `build/ethernet/ping-00.hex`, que
+es la captura que atraviesa más capas.
+
+.Campos, offsets y origen de los datos de ping-00
+[cols="1,2,1,2,2",options="header"]
+|===
+|Capa |Campo |Offset |Valor |Qué demuestra
+
+|— |Preámbulo |0-6 |`55` x7 |
+|— |SFD |7 |`d5` |Comienzo de la trama
+|2 |MAC destino |8-13 |`02:00:00:00:00:02` |Dirección saneada, sin OUI
+|2 |MAC origen |14-19 |`02:00:00:00:00:01` |Dirección saneada, sin OUI
+|2 |EtherType |20-21 |`08 00` |IPv4
+|3 |Versión e IHL |22 |`45` |IPv4, cabecera de 20 bytes sin opciones
+|3 |Longitud total |24-25 |`00 3c` = 60 |20 de IPv4 + 8 de ICMP + 32 de payload
+|3 |Identificación |26-27 |`00 20` |Generada por el W5500, no por la aplicación
+|3 |Indicadores |28-29 |`40 00` |Bit DF activo, sin fragmentar
+|3 |TTL |30 |`80` = 128 |Valor inicial del controlador
+|3 |Protocolo |31 |`01` |ICMP
+|3 |Checksum IPv4 |32-33 |`6a ac` |Recalculado: verifica
+|3 |IP origen |34-37 |192.168.7.163 |Obtenida por DHCP en la misma ejecución
+|3 |IP destino |38-41 |192.168.7.1 |El objetivo del guion
+|3 |Tipo ICMP |42 |`08` |Echo Request
+|3 |Checksum ICMP |44-45 |`b2 96` |Recalculado: verifica
+|3 |Identificador |46-47 |`45 4c` |
+|3 |Nº de secuencia |48-49 |`00 1d` = 29 |
+|3 |Payload |50-81 |`00` x32 |El patrón que la aplicación calculó
+|2 |FCS |82-85 |`98 4f 9a 1c` |Añadido por el W5500 al transmitir
+|===
+
+Los desplazamientos se cuentan desde el primer byte del preámbulo, que es como
+los numera el archivo HEX del proyecto. Wireshark empieza a contar en la MAC de
+destino, de modo que sus offsets son ocho menos.
+
+Esta tabla demuestra que:
+
+* La MAC de origen y la IP de destino son las que se especificaron en el guion;
+* El tipo ICMP, el payload y su checksum son los que calculó la aplicación del Flipper;
+* La identificación IPv4, el TTL, los checksums de cabecera y el FCS son responsabilidad del W5500.
+
+Ninguna de estas tres es visible desde un solo punto de observación. El guion está
+en el archivo `.eth`, lo que calculó la aplicación está en el bus SPI, y lo que
+añadió el controlador sólo aparece en el cable. La trama reconstruida es el único
+lugar donde los tres coinciden.
+
+== Lo mismo en ARP y en HTTP
+
+*ARP* muestra el caso más limpio de reparto de responsabilidades. La petición es
+una difusión de 64 bytes con operación 1, dirección de hardware de origen
+`02:00:00:00:00:01`, dirección de protocolo de origen 192.168.7.163, dirección de
+hardware de destino a cero y dirección de protocolo de destino 192.168.7.1. Los
+28 bytes de ARP más los 14 de Ethernet suman 42, así que la trama incorpora *18
+bytes de relleno* hasta alcanzar los 60 exigidos, y después el FCS.
+
+En el bus SPI se localizaron 60 bytes MACRAW coincidentes. La diferencia con los
+64 del cable son exactamente los cuatro bytes del FCS. *El Flipper entrega la
+trama sin FCS y el W5500 lo añade al transmitir*.
+
+*HTTP* muestra el caso contrario. La captura física es un segmento TCP del puerto 49152 al 80, con el indicador ACK como único activo, ventana de 2048 y *cero bytes de datos de aplicación*. La
+cabecera TCP ocupa 20 bytes sin opciones; con los 14 de Ethernet y los 20 de IPv4
+suman 54, así que hay *6 bytes de relleno*.
+
+La captura física de HTTP *no contiene el texto del `GET`*. Contiene un
+reconocimiento TCP de la misma conversación. La petición `GET`, de 56 bytes, se
+observa en el bus SPI, treinta veces durante la misma ejecución, y sus treinta respuestas con estado 200 constan en el log del Flipper.
+
+Decodificando `build/ethernet/http.hex` resultan cero bytes de datos tras la cabecera TCP, lo
+que confirmando la ausencia de cuerpo en la respuesta HTTP.
+
+== Análisis con Wireshark
+
+`export_capture.py` genera un PCAPNG que declara en el bloque de descripción de interfaz que la trama incluye cuatro bytes de FCS, mediante el campo `if_fcslen` del formato (<<pcapng-spec,especificación PCAPNG>>). Sin esa declaración Wireshark trataría el FCS como cuatro bytes de datos
+al final del paquete y mostraría un tamaño incorrecto (<<wireshark-docs,documentación de Wireshark>>).
+
+El preámbulo y el SFD no se incluyen en el PCAPNG: no forman parte de la trama tal
+como la entrega una interfaz de red, y no existe una convención aceptada para
+transportarlos. Se ha optado por incluirlos en la transcripción hexadecimal.
+
+Los tres archivos se
+analizaron con TShark, la utilidad de terminal incluida con Wireshark (<<wireshark-docs,documentación de Wireshark>>). Se
+activó expresamente la validación de FCS Ethernet y de los checksums IPv4 y TCP;
+el disector ICMP valida su checksum sin necesitar una preferencia adicional.
+El comando es reproducible desde la raíz del repositorio:
+
+.Comando TShark para validar las capturas
+[source,sh]
+----
+for captura in build/ethernet/ping-00.pcapng \
+               build/ethernet/arp.pcapng \
+               build/ethernet/http.pcapng; do
+    tshark -r "$captura" -n \
+        -o eth.check_fcs:true \
+        -o ip.check_checksum:true \
+        -o tcp.check_checksum:true \
+        -V
+done
+----
+
+La disección obtenida confirma los siguientes campos:
+
+.Campos que TShark identifica en cada captura
+[cols="2,1,5",options="header"]
+|===
+|Captura |Longitud |Resultado de TShark
+
+|`ping-00.pcapng`
+|78 bytes
+|Ethernet local unicast, IPv4 de 192.168.7.163 a 192.168.7.1, TTL 128 e ICMP
+Echo Request de tipo 8, secuencia 29 y 32 bytes `00`. FCS `0x984f9a1c` y
+checksums IPv4 `0x6aac` e ICMP `0xb296`: los tres, correctos.
+
+|`arp.pcapng`
+|64 bytes
+|Difusión Ethernet, ARP request con origen 192.168.7.163, destino 192.168.7.1
+y MAC objetivo `00:00:00:00:00:00`. TShark separa 18 bytes de _padding_ y marca
+el FCS `0x02d7354a` como correcto.
+
+|`http.pcapng`
+|64 bytes
+|IPv4/TCP de 192.168.7.163:49152 a 192.168.7.1:80, sólo con el indicador ACK y
+longitud TCP cero. TShark separa 6 bytes de _padding_; el FCS `0xd070ad1e` y los
+checksums IPv4 `0x6a56` y TCP `0x0604` son correctos. No aparece el protocolo
+HTTP porque esta trama no contiene datos de aplicación.
+|===
+
+Este resultado coincide con el decodificador propio. También confirma lo mencionado sobre HTTP, Wireshark identifica la trama como TCP con `Len: 0`.
+
+Los tres paquetes tienen marca temporal `0.000000000`, correspondiente al 1 de
+enero de 1970. Es deliberado: el exportador reconstruye una trama aislada y no
+inventa la hora ni la separación entre paquetes. Por tanto, estos PCAPNG sirven
+para el análisis de campos, longitudes e integridad, pero no para medir tiempos;
+la evidencia temporal permanece en los NPZ originales.

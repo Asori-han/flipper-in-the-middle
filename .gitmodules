@@ -1,0 +1,6 @@
+[submodule "third_party/openwrt"]
+	path = third_party/openwrt
+	url = https://github.com/openwrt/openwrt.git
+[submodule "third_party/flipperzero-firmware"]
+	path = third_party/flipperzero-firmware
+	url = https://github.com/flipperdevices/flipperzero-firmware.git

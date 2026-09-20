@@ -1,0 +1,63 @@
+{
+  "source": "Logic 2 SPI analyzer exports, sanitized for publication",
+  "analyzer_sample_rate_hz": 12000000,
+  "spi_clock_hz": 2000000,
+  "captures": {
+    "icmp-increment": {
+      "run": "20260913_031230_increment",
+      "mode": "IPRAW, socket 1 TX",
+      "mosi_hex": "0800c193454c001f000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "spi_fields": [["Cabecera ICMP", 8], ["Payload incremental", 32]],
+      "wire_fields": [["Ethernet", 14], ["IPv4", 20], ["Cabecera ICMP", 8], ["Payload incremental", 32], ["FCS", 4]],
+      "same_packet": true
+    },
+    "icmp-00": {
+      "run": "20260913_031915_00",
+      "mode": "IPRAW, socket 1 TX",
+      "mosi_hex": "0800b296454c001d0000000000000000000000000000000000000000000000000000000000000000",
+      "spi_fields": [["Cabecera ICMP", 8], ["Payload 00", 32]],
+      "wire_fields": [["Ethernet", 14], ["IPv4", 20], ["Cabecera ICMP", 8], ["Payload 00", 32], ["FCS", 4]],
+      "same_packet": true
+    },
+    "icmp-55": {
+      "run": "20260913_031416_55",
+      "mode": "IPRAW, socket 1 TX",
+      "mosi_hex": "08005d3f454c001f5555555555555555555555555555555555555555555555555555555555555555",
+      "spi_fields": [["Cabecera ICMP", 8], ["Payload 55", 32]],
+      "wire_fields": [["Ethernet", 14], ["IPv4", 20], ["Cabecera ICMP", 8], ["Payload 55", 32], ["FCS", 4]],
+      "same_packet": true
+    },
+    "icmp-aa": {
+      "run": "20260913_031449_aa",
+      "mode": "IPRAW, socket 1 TX",
+      "mosi_hex": "080006ba454c014faaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "spi_fields": [["Cabecera ICMP", 8], ["Payload aa", 32]],
+      "wire_fields": [["Ethernet", 14], ["IPv4", 20], ["Cabecera ICMP", 8], ["Payload aa", 32], ["FCS", 4]],
+      "same_packet": true
+    },
+    "icmp-ff": {
+      "run": "20260913_031956_ff",
+      "mode": "IPRAW, socket 1 TX",
+      "mosi_hex": "0800b153454c0160ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "spi_fields": [["Cabecera ICMP", 8], ["Payload ff", 32]],
+      "wire_fields": [["Ethernet", 14], ["IPv4", 20], ["Cabecera ICMP", 8], ["Payload ff", 32], ["FCS", 4]],
+      "same_packet": true
+    },
+    "arp": {
+      "run": "20260913_121908_arp",
+      "mode": "MACRAW, socket 0 TX",
+      "mosi_hex": "ffffffffffff02000000000108060001080006040001020000000001c0a807a3000000000000c0a80701000000000000000000000000000000000000",
+      "spi_fields": [["Ethernet", 14], ["ARP", 28], ["Relleno", 18]],
+      "wire_fields": [["Ethernet", 14], ["ARP", 28], ["Relleno", 18], ["FCS", 4]],
+      "same_packet": true
+    },
+    "http": {
+      "run": "20260913_122619_http",
+      "mode": "TCP, socket 2 TX",
+      "mosi_hex": "474554202f20485454502f312e300d0a486f73743a203139322e3136382e372e310d0a436f6e6e656374696f6e3a20636c6f73650d0a0d0a",
+      "spi_fields": [["GET / HTTP/1.0", 16], ["Cabeceras HTTP", 40]],
+      "wire_fields": [["Ethernet", 14], ["IPv4", 20], ["TCP ACK", 20], ["Relleno", 6], ["FCS", 4]],
+      "same_packet": false
+    }
+  }
+}

@@ -1,0 +1,90 @@
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+repo=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
+lab="$repo/src/lab"
+ethernet_output="$repo/build/ethernet"
+poe_output="$repo/build/figures"
+mkdir -p "$ethernet_output" "$poe_output"
+
+export PYTHONPYCACHEPREFIX=${PYTHONPYCACHEPREFIX:-/tmp/flipper-in-the-middle-pycache}
+export MPLCONFIGDIR=${MPLCONFIGDIR:-"$repo/build/cache/matplotlib"}
+mkdir -p "$MPLCONFIGDIR"
+
+while read -r capture source; do
+  source_npz="$repo/data/captures/ethernet/$source"
+  python3 "$lab/export_capture.py" "$source_npz" -o "$ethernet_output/$capture"
+  python3 "$lab/npz_to_svg.py" "$source_npz" \
+    --capture 1 --mode all --bytes 8 --output-prefix "$ethernet_output/$capture"
+done <<'EOF'
+ping-00 20260913_031915_00.npz
+arp 20260913_121908_arp.npz
+http 20260913_122619_http.npz
+EOF
+
+# Individual sanitized runs used by the per-test comparison sheets.
+capture_sheet_output="$repo/build/captures"
+mkdir -p "$capture_sheet_output"
+while read -r slug source threshold; do
+  source_npz="$repo/data/captures/ethernet/$source.npz"
+  python3 "$lab/export_capture.py" "$source_npz" \
+    -o "$capture_sheet_output/$slug"
+  python3 "$lab/npz_to_svg.py" "$source_npz" \
+    --capture 1 --mode all --threshold "$threshold" --bytes 8 \
+    --output-prefix "$capture_sheet_output/$slug"
+  python3 "$lab/plot_spi_capture.py" \
+    "$repo/data/captures/spi-comparisons.json" "$slug" \
+    "$repo/data/captures/ethernet/${source}_spi.csv" \
+    "$capture_sheet_output/${slug}_spi.png"
+  if [ "$slug" = icmp-00 ]; then
+    tshark -r "$capture_sheet_output/$slug.pcapng" -n \
+      -o eth.check_fcs:true -o ip.check_checksum:true \
+      -T pdml > "$capture_sheet_output/${slug}.pdml"
+  fi
+done <<'EOF'
+icmp-increment 20260913_031230_increment 450
+icmp-00 20260913_031915_00 300
+icmp-55 20260913_031416_55 300
+icmp-aa 20260913_031449_aa 450
+icmp-ff 20260913_031956_ff 450
+arp 20260913_121908_arp 300
+http 20260913_122619_http 300
+EOF
+
+python3 "$lab/plot_poe_startup.py" \
+  "$repo/data/captures/poe/poe_startup_positive_20260911_193902.npz" \
+  --output "$poe_output/poe-arranque.svg"
+python3 "$lab/plot_poe_startup.py" \
+  "$repo/data/captures/poe/poe_startup_positive_20260911_193902.npz" \
+  --output "$poe_output/poe-arranque.png"
+python3 "$lab/plot_poe_current.py" \
+  "$repo/data/captures/poe/poe_current_20260911_201209.npz" \
+  --shunt 10 --output "$poe_output/poe-corriente.svg"
+python3 "$lab/plot_poe_current.py" \
+  "$repo/data/captures/poe/poe_current_20260911_201209.npz" \
+  --shunt 10 --output "$poe_output/poe-corriente.png"
+python3 "$lab/plot_poe_edge.py" \
+  "$repo/data/captures/poe/poe_power_on_edge_20260911_210434.npz" \
+  --shunt 10 --invert-voltage --output "$poe_output/poe-flanco.svg"
+python3 "$lab/plot_poe_edge.py" \
+  "$repo/data/captures/poe/poe_power_on_edge_20260911_210434.npz" \
+  --shunt 10 --invert-voltage --output "$poe_output/poe-flanco.png"
+python3 "$lab/plot_poe_startup.py" \
+  "$repo/data/captures/poe/poe_full_sequence_20260911_230051.npz" \
+  --current --shunt 10 --invert-current --invert-voltage \
+  --output "$poe_output/poe-secuencia.svg"
+python3 "$lab/plot_poe_startup.py" \
+  "$repo/data/captures/poe/poe_full_sequence_20260911_230051.npz" \
+  --current --shunt 10 --invert-current --invert-voltage \
+  --output "$poe_output/poe-secuencia.png"
+python3 "$lab/plot_poe_removal.py" \
+  "$repo/data/captures/poe/poe_power_removal_20260911_214836.npz" \
+  --shunt 10 --invert-voltage --output "$poe_output/poe-retirada.svg"
+python3 "$lab/plot_poe_removal.py" \
+  "$repo/data/captures/poe/poe_power_removal_20260911_214836.npz" \
+  --shunt 10 --invert-voltage --output "$poe_output/poe-retirada.png"
+
+printf 'Ethernet artifacts: %s\n' "$ethernet_output"
+printf 'Capture sheets: %s\n' "$capture_sheet_output"
+printf 'PoE figures: %s\n' "$poe_output"

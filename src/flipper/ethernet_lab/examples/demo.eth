@@ -1,0 +1,34 @@
+ETHERNET-LAB/1
+# Laboratory network: DHCP configures the Flipper; the Mango is 192.168.7.1.
+MAC 02:00:00:00:00:01
+PHY AUTO
+
+NOTE Prepare the capture
+WAIT 2000
+
+NOTE Enlace y negociacion PHY
+LINK 5000
+WAIT 2000
+
+NOTE Configuracion IPv4 por DHCP
+DHCP 15000
+WAIT 2000
+
+NOTE Resolucion ARP
+ARP 192.168.7.1 2000
+WAIT 2000
+
+NOTE ICMP with recognizable payloads
+PING 192.168.7.1 1 2000 INCREMENT
+WAIT 2000
+PING 192.168.7.1 1 2000 00
+WAIT 2000
+PING 192.168.7.1 1 2000 FF
+WAIT 2000
+PING 192.168.7.1 1 2000 55
+WAIT 2000
+PING 192.168.7.1 1 2000 AA
+WAIT 2000
+
+NOTE Peticion HTTP visible en Wireshark
+HTTP_GET 192.168.7.1 80 /

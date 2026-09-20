@@ -1,0 +1,323 @@
+= Planificación
+
+== Material utilizado
+
+* Osciloscopio HANMATEK DOS1102.
+
+.Osciloscopio HANMATEK DOS1102
+image::../assets/hanmatek.png[Osciloscopio HANMATEK DOS1102,400]
+
+Fuente: https://hanmatek.com/es-eu/products/hanmatek-dos1102-110mhz-2ch-oscilloscope[Hanmatek]
+
+* Analizador lógico marca blanca.
+
+.Analizador lógico USB
+image::../assets/logic-analyzer.png[Analizador lógico marca blanca,400]
+
+Fuente: https://es.aliexpress.com/[AliExpress]
+
+* Flipper Zero.
+
+.Dispositivo Flipper Zero
+image::../assets/flipper.jpg[Flipper Zero,400]
+
+Fuente: https://flipper.net[Flipper Zero]
+
+* Microcontrolador W5500.
+
+.Módulo Ethernet basado en W5500
+image::../assets/w5500.png[Microcontrolador W5500,400]
+
+Fuente: https://es.aliexpress.com/[AliExpress]
+
+* Comprobador de cables de red Noyafa NF-8209.
+
+.Comprobador de cableado Noyafa NF-8209
+image::../assets/network-cable-tester.png[Comprobador de cables de red Noyafa NF-8209,400]
+
+Fuente: https://www.noyafa.com/es/blogs/base-de-conocimientos/las-principales-razones-por-las-que-necesita-un-trazador-de-cable-de-red[Noyafa]
+
+* PoE Splitter PS15G.
+
+.Splitter PoE GL.iNet PS15G
+image::../assets/poe-splitter.png[PoE Splitter PS15G,400]
+
+Fuente: https://www.gl-inet.com/en-de/products/poe-splitter[GL.iNet]
+
+* Raspberry Pi 4 B (sólo utilizada como receptor para PoE).
+
+.Raspberry Pi 4 B como receptor PoE
+image::../assets/raspberry.png[Raspberry Pi 4 B,400]
+
+Fuente: https://www.raspberrypi.com/products/raspberry-pi-4-case/[Raspberry Pi]
+
+* Mini router GL.iNet Mango GL-MT300N-V2.
+
+.Router GL.iNet Mango GL-MT300N-V2
+image::../assets/mango.png[GL.iNet Mango GL-MT300N-V2,400]
+
+Fuente: https://www.gl-inet.com/en-de/products/gl-mt300n-v2[GL.iNet]
+
+* Resistencias varias (valores a determinar según el circuito).
+* Cables de red.
+
+== Capas y puntos de observación
+El <<iso-iec-7498-1,modelo OSI>> establece las siguientes capas de comunicación en redes informáticas:
+
+* Capa 1: Física
+* Capa 2: Enlace de datos
+* Capa 3: Red
+* Capa 4: Transporte
+* Capa 5: Sesión
+* Capa 6: Presentación
+* Capa 7: Aplicación
+
+Estas capas proporcionan un marco de referencia para entender cómo se comunican los diferentes componentes de una red y cómo se pueden analizar las señales en cada nivel.
+
+No todos los puntos de observación se corresponden directamente con una capa específica del modelo OSI; algunos pueden involucrar múltiples capas o aspectos físicos de la transmisión de datos.
+
+La señal diferencial del cable corresponde a la capa física. La trama <<ieee-802-3,Ethernet>> contiene la capa de enlace.
+
+<<rfc-791-ipv4,IPv4>> e <<rfc-792-icmp,ICMP>> se sitúan en la capa de red, <<rfc-9293-tcp,TCP>> en la capa de transporte y <<rfc-9110-http-semantics,HTTP>> en la capa de aplicación.
+
+El bus _SPI_ (Serial Peripheral Interface) entre el Flipper y el W5500 no es una capa del modelo OSI, sino una interfaz de comunicación entre componentes internos.
+
+.Puntos de observación, datos disponibles y limitaciones
+[cols="2,3,3",options="header"]
+|===
+|Punto observado |Información disponible |Limitación principal
+
+|Log del Flipper
+|Comandos ejecutados, configuración obtenida por DHCP y resultados de ARP,
+ICMP y HTTP
+|No contiene la forma de onda ni permite verificar por sí solo el _FCS_ (Frame Check Sequence)
+
+|Bus SPI
+|Registros y datos intercambiados entre la aplicación y el W5500
+|No incluye necesariamente las cabeceras y campos que genera el controlador
+
+|Osciloscopio sobre cable de red
+|Amplitud, tiempo, señal diferencial y transiciones Manchester
+|La ventana de memoria puede contener sólo una parte de la conversación
+
+|PCAPNG y Wireshark
+|Trama Ethernet y disección de protocolos superiores
+|No muestran el preámbulo ni el SFD como parte habitual del paquete analizado
+|===
+
+En una petición ARP enviada mediante el modo MACRAW, por ejemplo, el Flipper entrega al W5500 una trama sin FCS y el controlador añade ese campo al transmitir, como describe la documentación del <<w5500-datasheet,W5500>>. En una petición HTTP, la aplicación entrega el contenido del `GET` al socket TCP y el W5500 genera las cabeceras TCP, IPv4 y Ethernet. Buscar en SPI campos que sólo aparecen después del controlador conduciría a una conclusión incorrecta.
+
+== Protocolos analizados
+
+* Ethernet (10Base-T): Estándar de red de área local que utiliza cableado de par trenzado y codificación Manchester para la transmisión de datos a 10 Mbps (<<ieee-802-3,IEEE 802.3>>).
+* ICMP: Protocolo de control de mensajes de Internet utilizado para enviar mensajes de error y de diagnóstico en redes IP (ping) (<<rfc-792-icmp,RFC 792>>).
+* ARP: Protocolo de resolución de direcciones utilizado para mapear direcciones IP a direcciones MAC en una red local (<<rfc-826-arp,RFC 826>>).
+* PoE: Power over Ethernet, estándar que permite suministrar energía eléctrica a dispositivos a través del cableado de red Ethernet (<<ieee-802-3,IEEE 802.3>>).
+* TCP: Protocolo de control de transmisión que proporciona comunicación confiable y orientada a la conexión entre dispositivos en una red IP (<<rfc-9293-tcp,RFC 9293>>).
+* HTTP: Protocolo de transferencia de hipertexto utilizado para la comunicación entre clientes y servidores web (<<rfc-9110-http-semantics,RFC 9110>>).
+
+== Diseño de circuitos electrónicos
+
+.Ley de Ohm
+La ley de Ohm establece que la corriente que circula a través de un conductor entre dos puntos es directamente proporcional a la diferencia de potencial entre esos dos puntos e inversamente proporcional a la resistencia del conductor. Matemáticamente, se expresa como:
+
+.Ecuación de la ley de Ohm
+[source,math]
+----
+I = V / R
+----
+
+Donde:
+
+* I es la corriente en amperios (A).
+* V es la diferencia de potencial en voltios (V).
+* R es la resistencia en ohmios (Ω).
+
+.Primera ley de Kirchhoff
+Establece que la suma de las corrientes que entran en un nodo es igual a la suma de las corrientes que salen del mismo.
+
+.Esquema de un nodo con corrientes entrantes y salientes
+image::../../build/paper/kirchhoff-current-node.png[Esquema de un nodo con corrientes entrantes y salientes,align="center"]
+
+I1 + I2 = I3 + I4
+
+Forma equivalente, con las entrantes positivas y las salientes negativas:
+
+.Ecuación de la ley de corrientes de Kirchhoff
+[source,math]
+----
+Σ I = 0
+----
+
+Esta es la ley que nos permite analizar cómo se reparte la corriente en los nodos de un circuito, como en el caso del reparto de la corriente PoE entre los conductores de un par trenzado, el cual será objeto de estudio en el anexo correspondiente.
+
+.Segunda ley de Kirchhoff
+Es la ley que establece que la suma de las diferencias de potencial alrededor de un lazo cerrado es igual a cero.
+
+.Esquema de un lazo cerrado con diferencias de potencial
+image::../../build/paper/kirchhoff-voltage-loop.png[Esquema de un lazo cerrado con diferencias de potencial,align="center"]
+
+V - I·R1 - I·R2 = 0
+
+Forma equivalente:
+
+.Ecuación de la ley de tensiones de Kirchhoff
+[source,math]
+----
+Σ V = 0
+----
+
+De donde: I = V / (R1 + R2)
+
+.Cómo analizar una señal diferencial
+La forma más adecuada de analizar una señal diferencial con un osciloscopio consiste en utilizar una sonda diferencial, que permite medir la diferencia de potencial entre dos puntos sin que la referencia a tierra afecte la señal. El coste de una sonda diferencial suele ser más elevado que el de una sonda estándar, superando incluso el valor del osciloscopio utilizado en este caso, pero proporciona mediciones más precisas y seguras en circuitos diferenciales.
+
+Alternativamente, se pueden utilizar dos sondas estándar para medir cada una de las señales individuales y luego restarlas para obtener la señal diferencial. Esta técnica es menos precisa y puede introducir errores debido a las diferencias de fase y amplitud entre las sondas y que la referencia a tierra no es común al circuito diferencial. Esta técnica se apoya en el uso de dos resistencias de igual valor para crear un punto común de referencia a tierra, conocido como punto virtual de tierra, bajo el amparo de las leyes de Kirchhoff recién explicadas.
+
+Esta última técnica ha demostrado ser útil en el caso de estudio presentado en este documento.
+
+.Esquema de la medida diferencial empleada
+image::../../build/paper/differential-resistor-measurement.png[Esquema de la medida diferencial empleada,align="center"]
+
+En la <<saleae-differential-guide,guía técnica de Saleae>>, fabricante de analizadores lógicos, se explica cómo medir una señal diferencial como Manchester.
+
+.Punto virtual de tierra
+Para el esquema de medida diferencial presentado anteriormente, el punto virtual de tierra se crea utilizando dos resistencias de igual valor, conectadas entre los dos hilos del par trenzado y un punto común que sirve como referencia a tierra para las sondas del osciloscopio. El valor de las resistencias debe ser lo suficientemente alto para no afectar significativamente la señal diferencial, pero lo suficientemente bajo para proporcionar una referencia estable a tierra. En este caso, el valor escogido es de 10 kΩ.
+
+== Ethernet 10BASE-T
+Tal y como se establece en la norma IEEE 802.3, Ethernet 10BASE-T utiliza un par trenzado de cables de cobre para la transmisión de datos a una velocidad de 10 Mbps. La codificación utilizada es Manchester, que permite la sincronización de la señal y la detección de errores (<<ieee-802-3,IEEE 802.3>>).
+
+Esta codificación asegura que siempre haya una transición en el medio de cada bit, lo que facilita la recuperación del reloj en el receptor. Una transición de positivo a negativo representa un bit 0, mientras que una transición de negativo a positivo representa un bit 1. Los bits de cada byte se transmiten como LSB (Least Significant Bit) primero.
+
+.Duración de bit y semibit en codificación Manchester
+[literal]
+....
+bit 0: transición + → - en el centro
+bit 1: transición - → + en el centro
+Tbit = 100 ns
+Tsemibit = 50 ns
+....
+
+Esta transición implica que el ancho de banda utilizado por la señal (20MHz) es aproximadamente el doble de la tasa de bits, ya que cada bit genera al menos una transición en el medio.
+
+La trama transmitida está precedida por siete bytes de preámbulo `0x55` y un delimitador _SFD_ (Start Frame Delimiter) `0xD5`. Después aparecen las direcciones MAC de destino y origen, el EtherType o longitud, el contenido de las capas superiores y el FCS. Este último es un _CRC-32_ (Cyclic Redundancy Check de 32 bits) calculado sobre la trama Ethernet desde la dirección de destino. El preámbulo y el SFD ayudan a localizar el comienzo y recuperar el reloj, pero no forman parte del cálculo del FCS (<<ieee-802-3,IEEE 802.3>>).
+
+.Trama Ethernet de ejemplo
+[literal]
+....
+Preamble: 0x55 55 55 55 55 55 55
+SFD: 0xD5
+Destination MAC: 02:00:00:00:00:02
+Source MAC: 02:00:00:00:00:01
+EtherType: 0x88 B5
+Payload: 0xDE AD BE EF
+FCS: 0x06 54 45 F9
+....
+
+.Mapa de campos y desplazamientos
+include::../../diagrams/ethernet-frame-layout.txt[]
+
+El desplazamiento se cuenta desde el primer byte del preámbulo; entre
+paréntesis, desde la MAC de destino, que es como lo numera Wireshark. El
+preámbulo y el SFD no forman parte del cálculo del FCS y no aparecen en una
+captura tomada por una interfaz de red. Aquí sí aparecen porque la captura
+procede del medio físico.
+
+A 10 Mbit/s, un byte dura 800 ns; la trama mínima de 64 B dura 51,2 µs, el
+preámbulo más el SFD dura 6,4 µs y el hueco entre tramas es de 9,6 µs (96
+tiempos de bit).
+
+.Forma de onda Manchester del comienzo de la trama
+image::../../build/paper/manchester-waveform.png[Forma de onda Manchester del preámbulo, SFD y primer byte de la trama]
+
+.Cadena completa de evidencia
+include::../../diagrams/evidence-chain.txt[]
+
+== Comparativa de estándares de Ethernet
+
+.Características de las capas físicas Ethernet comparadas
+[cols="1,1,1,1,2",options="header"]
+|===
+|Estándar |Cláusula IEEE 802.3 |Pares |Línea |Codificación
+
+|10BASE-T
+|14
+|2 de 4
+|Manchester, 2 niveles
+|Cada bit lleva su propia transición central. Sin scrambler. Un par por
+sentido, semidúplex o dúplex según la negociación
+
+|100BASE-TX
+|24 (PCS) y 25 (PMD)
+|2 de 4
+|MLT-3, 3 niveles
+|4B/5B antes de la línea: 4 bits de datos se codifican en 5 de línea para
+garantizar transiciones, de donde salen 125 MBd para 100 Mbit/s. Scrambler de
+dispersión espectral. Un par por sentido
+
+|1000BASE-T
+|40
+|4 de 4
+|PAM-5, 5 niveles
+|4D-PAM5 con código de celosía de 8 estados. Los cuatro pares transmiten *a la
+vez en los dos sentidos*; cada extremo separa su propia emisión con un híbrido
+y cancelación de eco
+
+|10GBASE-T
+|55
+|4 de 4
+|PAM-16, 16 niveles
+|DSQ128 con precodificación de Tomlinson-Harashima y corrección de errores
+LDPC. También bidireccional simultáneo sobre los cuatro pares. Requiere Cat6a
+|===
+
+=== Consecuencias para la medida
+
+(_calculado_, tomando como criterio cuatro muestras por semisímbolo y un ancho
+de banda de cuatro veces el fundamental, que es el mismo criterio que
+`planning.adoc` aplica ya a 10BASE-T.)
+
+.Frecuencia de símbolo y requisitos de medida estimados
+[cols="1,1,1,1,1",options="header"]
+|===
+|Estándar |Velocidad de símbolo |Fundamental |Ancho de banda mínimo |Muestreo mínimo
+
+|10BASE-T |10 MBd |20 MHz |80 MHz |160 MS/s
+|100BASE-TX |125 MBd |31,25 MHz |125 MHz |250 MS/s
+|1000BASE-T |125 MBd por par |62,5 MHz |250 MHz |500 MS/s
+|10GBASE-T |800 MBd por par |400 MHz |1,6 GHz |3,2 GS/s
+|===
+
+El Hanmatek DOS1102, con 110 MHz de placa y 500 MS/s con dos canales, se queda en el
+límite de 100BASE-TX. Además, se deben considerar los siguientes obstáculos:
+
+* *La bidireccionalidad simultánea.* A partir de 1000BASE-T los dos
+extremos transmiten al mismo tiempo sobre el mismo par. Lo que hay en el cable
+es la *suma* de ambas señales. Separarlas exige el híbrido y el cancelador de
+eco que cada extremo tiene, y que conocen su propia señal transmitida. Una
+sonda pasiva no dispone de esa información, así que ninguna cantidad de ancho
+de banda permite recuperar un sentido concreto. Con 10BASE-T y 100BASE-TX cada
+par lleva un solo sentido y el problema no existe.
+
+* *El scrambler.* Desde 100BASE-TX la línea va aleatorizada para
+repartir la energía en el espectro. Descodificar exige sincronizar el mismo
+polinomio que el transmisor, lo cual es un receptor completo y no una
+decodificación de forma de onda.
+
+* *La corrección de errores.* En 10GBASE-T los símbolos individuales
+no son fiables por sí solos: el estándar cuenta con que el LDPC corrija errores
+residuales. Un decodificador que sólo mire la forma de onda no obtiene datos
+correctos aunque acierte todos los niveles que puede distinguir.
+
+* *La memoria.* Con 10.000 puntos, incluso una captura a 500 MS/s
+cubre 20 µs. A 1000BASE-T eso es menos de la mitad de una trama mínima.
+
+== Requisitos mínimos de los instrumentos de medición
+
+* Para la lectura de señal analógica del cable de red, se requiere un ancho de banda mínimo de 4 veces la frecuencia de la señal transmitida, es decir, 4 x 20 MHz = 80 MHz y dos canales de entrada para medir la señal diferencial. Esto ya descarta la utilización del analizador lógico para esta tarea, cuya tasa de muestreo es insuficiente (el modelo utilizado dispone de 24 MHz de ancho de banda) y la señal capturada es digital (<<tektronix-oscilloscope-primer,guías de Tektronix>>).
+
+* Para la captura del negociado PoE, se requiere un equipo que soporte tensiones de al menos 54 V, claramente insuficiente para un analizador lógico común, por lo que se necesita un osciloscopio con capacidad de medir estas tensiones.
+
+Del material disponible, la única herramienta que cumple con los requisitos mencionados es el osciloscopio, dejando el analizador lógico como una herramienta de apoyo para la capturar la comunicación entre el Flipper Zero y el W5500 y contrastar los resultados obtenidos.
+
+En la fase de pruebas, se probó a capturar la señal del cable de red con el analizador lógico, pero debido a su limitada tasa de muestreo y ancho de banda, los resultados obtenidos no fueron representativos de la señal real.

@@ -1,0 +1,62 @@
+= Flipper in the Middle
+Jansu Soria (aka. Asori-han) <https://github.com/Asori-han/flipper-in-the-middle>
+
+:toc:
+:toc-title: Índice
+:figure-caption: Figura
+:table-caption: Tabla
+:listing-caption: Bloque
+
+<<<
+
+== Lista de figuras
+list-of::image[hide_empty_section=true]
+
+== Lista de tablas
+list-of::table[hide_empty_section=true]
+
+== Lista de bloques de código
+list-of::listing[]
+
+== Repositorio de GitHub
+
+Éste proyecto se encuentra disponible en el repositorio de GitHub: https://github.com/Asori-han/flipper-in-the-middle[Asori-han/flipper-in-the-middle].
+
+<<<
+
+:sectnums:
+
+include::includes/initiation.adoc[leveloffset=+1]
+
+<<<
+
+include::includes/planning.adoc[leveloffset=+1]
+
+<<<
+
+include::includes/execution.adoc[leveloffset=+1]
+
+<<<
+
+
+include::includes/monitoring.adoc[leveloffset=+1]
+
+<<<
+
+include::includes/conclusions.adoc[leveloffset=+1]
+
+<<<
+
+include::includes/annexe.adoc[leveloffset=+1]
+
+<<<
+
+:!sectnums:
+
+// Revisar al final
+include::includes/bibliography.adoc[leveloffset=+1]
+
+<<<
+
+// Revisar al final
+include::includes/glossary.adoc[leveloffset=+1]

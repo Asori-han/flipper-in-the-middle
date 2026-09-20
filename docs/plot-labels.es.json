@@ -1,0 +1,77 @@
+{
+  "common": {
+    "voltage_v": "tensión (V)",
+    "current_ma": "corriente (mA)",
+    "time_ms": "tiempo (ms)",
+    "time_us": "tiempo (µs)",
+    "line_voltage": "tensión de línea",
+    "total_current": "corriente total"
+  },
+  "poe_current": {
+    "startup_title": "Corriente PoE total durante el arranque ({duration_s:.2f} s a {sample_rate_ksps:.0f} kS/s)",
+    "classification_title": "Detalle de la fase de clasificación",
+    "class": "clase {number}"
+  },
+  "poe_edge": {
+    "detail_title": "Detalle del flanco: subida 10-90 % en {rise_us:.1f} µs, corriente retrasada {delay_us:.1f} µs",
+    "overview_title": "Conexión de potencia: clasificación a {classification_v:.1f} V y {previous_ma:.1f} mA, alimentación a {final_v:.1f} V ({duration_ms:.2f} ms a {sample_rate_msps:.0f} MS/s)"
+  },
+  "poe_removal": {
+    "smoothed_current": "corriente, media móvil de {window_ms:.0f} ms",
+    "detail_title": "Detalle de la bajada: 90-10 % en {fall_ms:.1f} ms",
+    "overview_title": "Retirada de potencia tras desaparecer el PD: {powered_v:.1f} V hasta t={cutoff_ms:.0f} ms, reposo en {idle_v:.1f} V"
+  },
+  "poe_startup": {
+    "bands": {
+      "detection": "detección",
+      "classification": "clasificación",
+      "power": "alimentación"
+    },
+    "current_axis": "corriente (mA)",
+    "voltage_axis": "CH1 (V)",
+    "overview_title": "Arranque PoE: registro completo ({duration_s:.2f} s a {sample_rate_ksps:.0f} kS/s)",
+    "detail_title": "Detección y clasificación previas a la conexión de potencia",
+    "time_axis": "tiempo (ms)"
+  },
+  "capture_svg": {
+    "full_title": "DOS1102 — captura {capture} — CH1 − CH2",
+    "time_axis": "Tiempo (µs)",
+    "amplitude_axis": "Amplitud diferencial (ADC, centrada)",
+    "activity": "Actividad ≈ {duration_us:.2f} µs\nMuestras {start}–{end}",
+    "zoom_title": "DOS1102 — captura {capture} — zoom ({sample_period_ns:.1f} ns/muestra)",
+    "real_signal": "Señal diferencial real (CH1 − CH2)",
+    "real_samples": "Muestras ADC reales",
+    "logical_level": "Nivel lógico recuperado por Python (histéresis ±{threshold:g})",
+    "byte": "byte {offset}: 0x{value}",
+    "recovered_bits": "Bits recuperados: {bits}",
+    "overlay_title": "10BASE-T — captura {capture}: señal real + interpretación de Python\n{recovered_bits}",
+    "scaled_axis": "Amplitud / nivel lógico escalado",
+    "sampling_note": "{sample_rate_msps:.1f} MS/s · {sample_period_ns:.1f} ns/muestra · {samples_per_bit:.2f} muestras/bit · 100 ns/bit"
+  },
+  "capture_animation": {
+    "subtitle": "Manchester · {bits_per_second:g} bits/s de reproducción · orden LSB primero",
+    "overview_axis": "Captura\ncompleta",
+    "time_axis": "Tiempo capturado (µs)",
+    "detail_axis": "CH1 − CH2\nADC centrado",
+    "legend": "Cian: señal capturada · Ámbar: interpretación lógica",
+    "title": "De la señal a los bits · adquisición {capture} de {count}",
+    "bytes": "Bytes {first}–{last}:  {values}",
+    "previous": "Anteriores: {values}",
+    "status": "Ráfaga {burst} · bit {bit}/{count} · {sample_rate_msps:g} MS/s · ? = inválido/incompleto; · = pendiente",
+    "no_bits": "Sin bits decodificables en este intervalo",
+    "fast_forward": "Avance rápido · {idle_rate:g} µs capturados/s de reproducción"
+  },
+  "byte_animation": {
+    "title": "De la señal eléctrica al byte",
+    "subtitle": "Manchester · 10BASE-T · captura {capture} · byte {byte_offset} de la ráfaga",
+    "time_axis": "Tiempo relativo al inicio del byte (ns)",
+    "detail_axis": "CH1 − CH2\nADC centrado",
+    "captured_signal": "● Señal capturada",
+    "recovered_logic": "━ Nivel lógico recuperado",
+    "bit_order": "Orden de transmisión: primero el bit menos significativo (LSB)",
+    "sampling_note": "{sample_rate_msps:g} MS/s · {samples_per_bit:g} muestras/bit",
+    "recovered_byte": "Byte recuperado: {binary}₂ = 0x{value:02X}",
+    "transition": "Bit {bit} · transición central {direction} → {value}",
+    "waiting": "Bit {bit} · esperando la transición central"
+  }
+}

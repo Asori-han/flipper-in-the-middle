@@ -1,0 +1,26 @@
+#!/bin/sh
+set -eu
+
+repo=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+output="$repo/build/paper"
+mkdir -p "$output" "$repo/build/cache/bundle"
+
+cd "$repo"
+python3 docs/diagrams/generate-schematics.py --output "$output"
+python3 docs/diagrams/poe_phases.py --output "$output/poe-phases-and-classes.png"
+python3 docs/diagrams/manchester.py --output "$output"
+if [ -z "${BUNDLE_PATH:-}" ]; then
+  bundle config set --local path "$repo/build/cache/bundle"
+fi
+bundle check >/dev/null 2>&1 || bundle install
+
+bundle exec asciidoctor-pdf -r asciidoctor-diagram -r asciidoctor-lists \
+  --theme docs/paper/theme/asir-theme.yml -a toc \
+  -a pdf-fontsdir=docs/paper/theme/fonts -D "$output" docs/paper/index.adoc
+bundle exec asciidoctor-pdf --theme docs/paper/theme/asir-theme-cover.yml \
+  -a pdf-fontsdir=docs/paper/theme/fonts -D "$output" docs/paper/includes/preface.adoc
+bundle exec ruby docs/paper/combine_pdf.rb \
+  "$output/preface.pdf" "$output/index.pdf" "$output/flipper-in-the-middle.pdf"
+rm "$output/index.pdf" "$output/preface.pdf"
+
+printf 'PDF generated at %s\n' "$output/flipper-in-the-middle.pdf"

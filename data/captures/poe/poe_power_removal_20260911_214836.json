@@ -1,0 +1,59 @@
+{
+  "metadata": {
+    "TIMEBASE": {
+      "SCALE": "50ms",
+      "HOFFSET": 240
+    },
+    "SAMPLE": {
+      "FULLSCREEN": 7600,
+      "SLOWMOVE": -1,
+      "DATALEN": 10000,
+      "SAMPLERATE": "(10KS/s)",
+      "TYPE": "SAMPle",
+      "DEPMEM": "10K",
+      "SCREENOFFSET": 1200
+    },
+    "CHANNEL": [
+      {
+        "NAME": "CH1",
+        "DISPLAY": "ON",
+        "Current_Rate": 10000.0,
+        "Current_Ratio": 500.0,
+        "Measure_Current_Switch": "OFF",
+        "COUPLING": "DC",
+        "PROBE": "10X",
+        "SCALE": "2.00V",
+        "OFFSET": 0,
+        "FREQUENCE": 0.0,
+        "INVERSE": "OFF"
+      },
+      {
+        "NAME": "CH2",
+        "DISPLAY": "ON",
+        "Current_Rate": 10000.0,
+        "Current_Ratio": 5.0,
+        "Measure_Current_Switch": "OFF",
+        "COUPLING": "DC",
+        "PROBE": "1X",
+        "SCALE": "200mV",
+        "OFFSET": 0,
+        "FREQUENCE": 0.0,
+        "INVERSE": "OFF"
+      }
+    ],
+    "DATATYPE": "WAVEDEPMEM",
+    "RUNSTATUS": "STOP",
+    "IDN": "HANMATEK,DOS1102,23450218,V3.1.0",
+    "MODEL": "110204101"
+  },
+  "capture_info": {
+    "timebase": "50ms",
+    "samplerate_text": "(10KS/s)",
+    "samplerate_hz": 10000.0,
+    "datalen": 10000,
+    "duration_s": 1.0,
+    "duration_us": 1000000.0,
+    "sample_period_ns": 100000.0,
+    "samples_per_10base_bit": 0.001
+  }
+}

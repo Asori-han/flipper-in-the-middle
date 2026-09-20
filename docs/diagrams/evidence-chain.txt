@@ -1,0 +1,29 @@
+[graphviz, evidence-chain, svg]
+....
+digraph evidence_chain {
+  graph [rankdir=TB, bgcolor="transparent", margin="0.08", nodesep="0.28", ranksep="0.42"];
+  node [shape=box, style="rounded,filled", fillcolor="#EAF3F8", color="#2B5D75", fontname="DejaVu Sans", fontsize=11, margin="0.16,0.10"];
+  edge [color="#2B5D75", penwidth=1.4, arrowsize=0.7, fontname="DejaVu Sans", fontsize=9];
+
+  script [label=".eth"];
+  flipper [label="Flipper Zero"];
+  w5500 [label="W5500\nPHY + MAC + sockets\nañade FCS y encapsulado"];
+  scope [label="Osciloscopio\nCH1 − CH2\n50 MS/s · 10 000 puntos · 200 µs"];
+  npz [label="NPZ\nmuestras + escala + frecuencia real"];
+  sanitize [label="MAC saneada · checksums y FCS reparados"];
+  decode [label="Manchester decoder\nhistéresis · cruces · fase · LSB primero"];
+  frame [label="Trama + FCS\nCRC-32 válido"];
+  outputs [label="Formatos de salida:\n.hex · .json · .svg · .pcapng"];
+  wireshark [label="Wireshark\nEthernet · ARP · IPv4 · ICMP · TCP", fillcolor="#DCEFD9", color="#39723B"];
+
+  script -> flipper [label="Flipper lo valida antes de usar el hardware"];
+  flipper -> w5500 [label="SPI (2 MHz)"];
+  w5500 -> scope [label="10BASE-T diferencial"];
+  scope -> npz;
+  npz -> sanitize [label="sanitize_capture.py"];
+  sanitize -> decode;
+  decode -> frame [label="validación FCS"];
+  frame -> outputs;
+  outputs -> wireshark [label="PCAPNG"];
+}
+....

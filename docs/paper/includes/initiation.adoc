@@ -1,0 +1,37 @@
+= Iniciación
+
+== Introducción
+
+Si bien es conocido, incluso por quienes no tienen conocimientos avanzados en informática, que ésta consiste en unos y ceros, la forma en que estos se transmiten y se interpretan puede ser bastante compleja y pocas veces se presenta de manera evidente, incluso para aquellos que llevamos años trabajando en el campo. Llegar a tan bajo nivel de detalle supone para muchos un acto de fé.
+
+Con la ayuda de las herramientas adecuadas, se procederá a analizar y comprender el tráfico de red a nivel de capa física, capturando una señal eléctrica completamente analógica y digitalizándola para llevarla a capas superiores del modelo OSI.
+
+.Acerca del proyecto original
+Este proyecto fue comenzado en 2024. Disponía de un Flipper Zero al cual todavía no le había sacado ningún partido y al descubrir que podía ser utilizado como osciloscopio gracias a su GPIO, me propuse la ambiciosa meta de desarrollar una aplicación como proyecto final de ASIR, la cuál consistía en leer e inyectar el tráfico que pasa por un cable de red, dándole nombre al proyecto flipper-in-the-middle.
+
+Al empezar a investigar sobre los distintos protocolos de Ethernet, me di cuenta de las limitaciones de hardware del Flipper Zero y que no me bastaría con hacerle un downgrade al protocolo negociado para la transmisión sino que además necesitaría un osciloscopio, un fascinante instrumento de medición que tuve ocasión de probar en mi etapa de estudiante de instalaciones eléctricas y automáticas pero en el que jamás tuve la oportunidad de profundizar. Era la oportunidad perfecta para combinar redes con desarrollo de software y electrónica. Por circunstancias que no vienen al caso, tuve que aparcar el proyecto durante más de dos años. A mediados de 2026, me propuse retomarlo.
+
+En pleno boom (o fiebre) de la IA, habría carecido de sentido no aprovecharla para vitaminar este proyecto. No solo se convirtió en un estupendo ayudante de laboratorio, también me corrigió aquellas mediciones que no estaba realizando correctamente, fruto de mi inexperiencia en el manejo del osciloscopio y me abrió la puerta a desarrollar un toolkit CLI multiplataforma para el mismo y prescindir del software GUI de Windows que venía con la herramienta.
+
+Solo el desarrollo del toolkit en Python tranquilamente habría triplicado la duración estimada del módulo de proyecto final de 30 horas, según establece el BOE.
+
+Si bien la utilidad del Flipper Zero se quedó bastante limitada para el objeto del mismo, decidí mantener el nombre y la portada, ilustrada por Hedera, por haber inspirado este proyecto.
+
+== Objeto del proyecto
+
+El objeto del presente proyecto es el análisis a nivel de capa física (según el <<iso-iec-7498-1,modelo OSI>>) del tráfico de red cableado. El análisis se realizará en un entorno de laboratorio, con el fin de poder controlar las condiciones de la red y poder realizar las mediciones necesarias. Para ello se plantean los siguientes objetivos:
+
+* Capturar y digitalizar señales eléctricas correspondientes al tráfico de red con un osciloscopio.
+* Analizar las señales digitalizadas y reconstruir tramas Ethernet.
+* Analizar las tramas con Wireshark.
+* Generar tráfico controlado mediante un Flipper Zero y un microcontrolador W5500.
+* Capturar señales digitales con un analizador lógico para compararlas con las obtenidas mediante el osciloscopio.
+* Automatizar el análisis de las señales y tramas capturadas mediante scripts y herramientas desarrolladas ad hoc.
+
+== Alcance del proyecto
+
+El proyecto se centra en el análisis de tráfico de red cableada, contrastando los resultados obtenidos con los estándares que definen los distintos protocolos observados.
+
+La decodificación de las señales capturadas se limita a <<ieee-802-3,10BASE-T>>, codificado mediante Manchester, debido a las limitaciones de ancho de banda del osciloscopio utilizado y a la complejidad de decodificar otros estándares de manera precisa y fiable con el equipo y presupuesto disponibles.
+
+Adicionalmente, se evaluará el proceso de negociación PoE (Power over Ethernet) para comprender cómo se establece y gestiona la alimentación eléctrica a través del cable de red.

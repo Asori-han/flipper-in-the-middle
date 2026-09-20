@@ -1,0 +1,40 @@
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+REPO_DIR=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
+FIRMWARE_DIR="$REPO_DIR/third_party/flipperzero-firmware"
+MOUNT="$FIRMWARE_DIR/applications_user/ethernet_lab"
+OUTPUT_DIR="$REPO_DIR/build/flipper"
+
+if [ ! -f "$FIRMWARE_DIR/SConstruct" ]; then
+    echo "The firmware submodule is missing. Run: git submodule update --init" >&2
+    exit 1
+fi
+
+if [ -e "$MOUNT" ] || [ -L "$MOUNT" ]; then
+    echo "$MOUNT already exists; the submodule will not be modified." >&2
+    exit 1
+fi
+
+cleanup() {
+    rm -f "$MOUNT"
+}
+trap cleanup EXIT HUP INT TERM
+ln -s ../../../src/flipper/ethernet_lab "$MOUNT"
+
+(
+    cd "$FIRMWARE_DIR"
+    ./fbt build APPSRC=applications_user/ethernet_lab
+)
+
+ARTIFACT=$(find "$FIRMWARE_DIR/build" -type f \
+    -path '*/.extapps/ethernet_lab.fap' -print -quit)
+if [ -z "$ARTIFACT" ]; then
+    echo "The build completed without producing ethernet_lab.fap." >&2
+    exit 1
+fi
+
+mkdir -p "$OUTPUT_DIR"
+cp "$ARTIFACT" "$OUTPUT_DIR/ethernet_lab.fap"
+printf 'FAP generated at %s\n' "$OUTPUT_DIR/ethernet_lab.fap"

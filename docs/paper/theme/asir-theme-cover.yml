@@ -1,0 +1,16 @@
+extends: default-with-font-fallbacks
+cover:
+  front:
+    image: image:../../assets/cover.pdf[]
+base:
+  font-size: 11
+footer:
+  recto:
+    right:
+      content: ~
+  verso:
+    left:
+      content: ~
+image:
+  caption:
+    align: inherit

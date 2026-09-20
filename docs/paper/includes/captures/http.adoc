@@ -1,0 +1,56 @@
+= Captura de la prueba HTTP
+
+ifndef::capture-images-dir[:capture-images-dir: ../../../../build/captures]
+
+== Evidencia utilizada
+
+.Archivos y artefactos de la captura HTTP
+[cols="2,4"]
+|===
+|Guion |`scope-http.eth`
+|Ejecución |`20260913_122619_http`, adquisición 5
+|Intento descartado |`20260913_122007_http`, nueve ventanas sin trama completa
+|NPZ saneado |`data/captures/ethernet/20260913_122619_http.npz`
+|Artefactos |`build/captures/http.*`
+|===
+
+== Señal analógica y analizador lógico
+
+El DOS1102 midió a 50 MS/s una ráfaga de 57,84 µs. La trama recuperada mide
+64 bytes y pertenece a una conexión TCP con el puerto 80, pero es un ACK con
+longitud de datos cero.
+
+.Señal Ethernet diferencial capturada durante la prueba HTTP
+image::{capture-images-dir}/http_full.png[Señal analógica TCP 80,align="center"]
+
+.Detalle de la señal analógica y decodificación Manchester
+image::{capture-images-dir}/http_overlay.png[Overlay analógico TCP 80,align="center"]
+
+El _overlay_ valida los primeros ocho bytes del ACK físico. Esta observación no
+debe confundirse con el `GET` que aparece después en el gráfico SPI.
+
+Logic 2 midió el SPI Flipper-W5500 y encontró 30 escrituras de 56 bytes con la
+petición `GET` en el TX del socket 2; la primera comienza en el offset 0. Esta
+evidencia y la trama analógica pertenecen a la misma ejecución, pero *no son los
+mismos bytes*: SPI demuestra el `GET`; el cable capturado demuestra otro paquete
+TCP/80 de la conversación.
+
+.Señal digital SPI y campos del paquete capturado en el cable
+image::{capture-images-dir}/http_spi.png[Comparación digital SPI HTTP y trama física TCP ACK,align="center"]
+
+El trazado MOSI permite leer la petición HTTP entregada al socket. No debe
+alinearse con la barra física: el DOS1102 capturó un ACK distinto, sin payload.
+En ambos sentidos se conserva la misma frontera técnica: ni las cabeceras que
+construye el W5500 ni el FCS `d0 70 ad 1e` del ACK atraviesan el bus SPI. Aquí la
+figura compara funciones y capas, no afirma identidad entre los dos paquetes.
+
+== Salida HEX
+
+.Trama TCP capturada durante la prueba HTTP, en hexadecimal
+[source,text]
+----
+include::../../../../build/captures/http.hex[]
+----
+
+Tras las cabeceras TCP no hay payload. Los seis ceros anteriores al FCS son
+relleno Ethernet, no texto HTTP.

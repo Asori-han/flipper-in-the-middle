@@ -1,0 +1,268 @@
+////
+Explicar configuración de los instrumentos de medición, calibración y procedimientos de prueba.
+
+Guía sobre el manejo de un osciloscopio.
+
+Cómo lanzar el banco de pruebas.
+
+Saneado de los resultados obtenidos en las pruebas.
+////
+
+= Ejecución
+
+== Preparación del enlace 10BASE-T
+
+Para capturar el tráfico de red a nivel de capa física, necesitamos negociar un enlace 10BASE-T, ya que otras velocidades utilizan codificaciones distintas que no son compatibles con el análisis que se pretende realizar (<<ieee-802-3,IEEE 802.3>>). Inicialmente, se desarrolló un módulo para OpenWrt que permitiera forzar esta configuración en el extremo del router. Posteriormente, al desarrollar el banco de pruebas para Flipper Zero, se incorporó la posibilidad de negociar 10BASE-T desde el propio Flipper.
+
+Tanto el desarrollo del módulo para OpenWrt como el banco de pruebas para Flipper se explican en anexo.
+
+*Desde el W5500, con la orden `PHY` del guion.* El archivo
+`examples/oscilloscope.eth` empieza así:
+
+.Fragmento del guion para fijar 10BASE-T
+[source,text]
+----
+ETHERNET-LAB/1
+# Analog capture: force 10BASE-T to observe Manchester encoding.
+MAC 02:00:00:00:00:01
+PHY 10_HALF
+----
+
+`PHY 10_HALF` fija el PHY del W5500 en 10 Mbit/s semidúplex, sin
+autonegociación.
+
+*Desde el switch, con el módulo `mt7628_phy_lab.ko`.* El SoC MT7628 del
+GL.iNet Mango no permite restringir la negociación directamente, es necesario hacerlo mediante un módulo.
+
+El módulo arranca en modo seguro y sólo modifica registros si se carga con
+`apply=1`. Se puede copiar el módulo al router por ssh y cargarlo con el siguiente comando:
+
+.Activación del módulo en OpenWrt
+[source,sh]
+----
+insmod mt7628_phy_lab.ko apply=1       # sin apply=1 no escribe nada
+----
+
+== Configuración de los instrumentos
+
+La configuración del osciloscopio para cada uno de los experimentos se ha automatizado mediante scripts que ajustan la base de tiempos, la frecuencia de muestreo y la ventana de captura según el tipo de señal a analizar.
+
+.Configuración temporal de las capturas
+[cols="2,1,1,1,3",options="header"]
+|===
+|Experimento |Base de tiempos |Muestreo |Ventana |Por qué
+
+|Ethernet, Manchester
+|10 µs/div
+|50 MS/s
+|200 µs
+|Cinco muestras por bit de 100 ns. Una trama de 78 bytes ocupa unos 69 µs, de
+modo que cabe entera con margen
+
+|PoE, arranque completo
+|50 ms/div
+|10 kS/s
+|1 s
+|Las cuatro fases suman 267 ms hasta la alimentación. Hace falta casi un segundo
+pero la resolución no es tan crítica como en el flanco de conexión.
+
+|PoE, flanco de conexión
+|100 µs/div
+|5 MS/s
+|2 ms
+|La subida 10-90 % dura 68,2 µs. A 0,2 µs de resolución el flanco queda descrito
+por unas 340 muestras
+
+|SPI Flipper-W5500
+|—
+|24 MS/s
+|—
+|Doce muestras por bit del reloj SPI de 2 MHz, holgado para decodificar
+
+|Ethernet con analizador lógico
+|—
+|24 MS/s
+|—
+|Máximo del instrumento. Resultó insuficiente: 1,2 muestras por semibit
+|===
+
+.Ajustes verticales y de sonda
+[cols="2,2,3",options="header"]
+|===
+|Medida |Sonda y escala |Motivo
+
+|Ethernet, CH1 y CH2
+|x10
+|Conserva el ancho de banda. Una sonda x1, con unos 100 pF de entrada, sitúa el
+polo en torno a 32 MHz y redondea los flancos de 50 ns
+
+|PoE, tensión de línea (CH1)
+|x10, 20 V/div en pantalla
+|En x1 los 53 V saturarían la entrada
+
+|PoE, caída en el shunt (CH2)
+|x1, 200 mV/div
+|La caída es de 0,1 a 1 V. En x10 se perdería un factor diez de resolución
+|===
+
+== Guía de manejo del DOS1102
+
+El osciloscopio viene con una herramienta para Windows que permite controlar la
+adquisición de datos y ajustar los parámetros de captura desde un PC. En el anexo
+se profundiza en `scope.py`, el script desarrollado para controlar estas
+adquisiciones desde la línea de comandos de forma multiplataforma, sin depender
+de esa interfaz gráfica.
+
+A continuación se describen los conceptos básicos de un osciloscopio que conviene conocer para aquellos que no estén familiarizados con su uso (<<tektronix-oscilloscope-primer,guías de medida y sondas de Tektronix>>).
+
+Un osciloscopio representa la evolución de una tensión en el tiempo. El eje
+vertical indica tensión y el horizontal, tiempo; cada cuadrícula de la pantalla
+equivale respectivamente a una cantidad de voltios por división y de segundos
+por división. La escala vertical se elige para aprovechar la pantalla sin
+recortar la señal, mientras que la base de tiempos debe ser suficientemente
+rápida para distinguir sus cambios y suficientemente lenta para contener el
+fenómeno completo. Por eso este proyecto emplea escalas muy distintas para una
+trama Ethernet, que dura microsegundos, y para la negociación PoE, que dura
+cientos de milisegundos.
+
+.Conceptos del osciloscopio y aplicación en el proyecto
+[cols="2,5",options="header"]
+|===
+|Concepto |Aplicación práctica
+
+|Canal
+|Cada entrada mide la tensión entre la punta y la pinza de masa de su sonda.
+Dos canales permiten comparar señales simultáneas, por ejemplo los dos
+conductores de un par Ethernet o la tensión y la corriente en el ensayo PoE.
+
+|Escala y posición vertical
+|La escala, expresada en V/div, determina cuánta tensión representa cada
+división. La posición u _offset_ desplaza la traza sin cambiar su amplitud y
+permite separar visualmente los canales.
+
+|Base de tiempos
+|Se expresa en s/div y determina la duración visible. Con diez divisiones
+horizontales, una base de 10 µs/div muestra aproximadamente 100 µs en pantalla.
+
+|Muestreo y memoria
+|Un osciloscopio digital toma medidas discretas. La frecuencia de muestreo fija
+cuántas muestras se obtienen por segundo y la profundidad de memoria limita
+cuántas se conservan. Para una memoria fija, ampliar la ventana temporal reduce
+la resolución con la que se describen los cambios rápidos.
+
+|Disparo
+|El _trigger_ estabiliza o congela la adquisición cuando una señal cruza un
+nivel determinado, con flanco ascendente o descendente. El nivel debe quedar
+entre los estados que se quieren detectar: si está fuera del rango de la señal,
+el equipo nunca dispara; si coincide con el ruido, puede hacerlo antes de tiempo.
+
+|Acoplamiento
+|En DC se conserva tanto el nivel continuo como sus variaciones; en AC se
+elimina la componente continua. Las medidas de este proyecto usan acoplamiento
+DC porque los niveles absolutos forman parte de la información analizada.
+
+|Sonda
+|Una sonda x1 presenta la señal directamente y ofrece más resolución para
+tensiones pequeñas. Una sonda x10 atenúa la tensión, carga menos el circuito y
+admite mayor amplitud. El selector físico de la sonda y el ajuste del canal deben
+coincidir para que la lectura no resulte multiplicada o dividida por diez.
+
+|Ancho de banda
+|Limita la rapidez de los cambios que el instrumento y la sonda pueden
+reproducir. No basta con que una señal quepa en pantalla: un ancho de banda o una
+frecuencia de muestreo insuficientes redondean los flancos y pueden ocultar
+detalles.
+|===
+
+La pinza de masa no es una referencia abstracta: está conectada eléctricamente
+al osciloscopio y, en un equipo alimentado desde la red, normalmente también a
+tierra de protección. Además, las masas de sus canales son comunes. Antes de
+conectarla hay que conocer la referencia del circuito; colocar dos pinzas en
+nodos distintos puede unirlos a través del propio instrumento, alterar la medida
+o provocar un cortocircuito. Esta precaución es especialmente importante en el
+montaje PoE y se desarrolla en su anexo.
+
+El procedimiento básico consiste en conectar las sondas con el circuito sin
+alimentación, seleccionar atenuación y acoplamiento, ajustar las escalas, elegir
+la fuente, el nivel y el flanco de disparo y, por último, iniciar la adquisición.
+En el DOS1102 controlado por USB se emplea concretamente la secuencia `STOP`,
+configuración, `RUN`, barrido `NORMal`, espera del disparo, `STOP` y descarga de
+la memoria. No se consulta repetidamente la memoria profunda mientras el equipo
+está adquiriendo, ya que este comportamiento puede bloquear su interfaz USB, esta limitación ha supuesto una consideración importante al diseñar los scripts de captura.
+
+== Cómo lanzar el banco de pruebas
+
+Es posible ejecutar todo el análisis, la suite de pruebas y la generación de
+resultados y figuras funcionan a partir de los NPZ saneados del repositorio sin necesidad de hardware.
+
+.Clonado del repositorio y generación de resultados
+[source,sh]
+----
+git clone --recurse-submodules https://github.com/Asori-han/flipper-in-the-middle.git
+cd flipper-in-the-middle
+docker compose build
+docker compose run --rm general make test      # 22 pruebas + parser del Flipper
+docker compose run --rm general make assets    # HEX, JSON, PCAPNG, SVG y figuras
+docker compose run --rm general make paper     # PDF
+----
+
+Tres contenedores Docker separan funciones que no comparten dependencias: `general`
+para pruebas, recursos y generación de PDF; `flipper` para compilar la aplicación ethernet_lab.fap; y `openwrt` para el desplegar el toolchain de OpenWrt y compilar el módulo para el router.
+
+`capture_demo.py` arma Logic 2 y el DOS1102, envía la pulsación OK al Flipper y
+guarda en una carpeta común la adquisición lógica, las ventanas del osciloscopio
+y el log de la aplicación. La automatización de Logic 2 usa la biblioteca oficial
+`saleae/logic2-automation`.
+
+Las limitaciones de este osciloscopio obligaron a diseñar los guiones de captura de manera que cada adquisición sea corta y se pueda rearmar rápidamente entre operaciones a fin de capturar todas las tramas necesarias.
+
+Por esta razón, el guion para Flipper `scope-arp` emite 600 peticiones y `scope-http` abre 30
+conexiones para aumentar la probabilidad de que una ventana corta contenga una trama completa.
+
+== Saneado de los resultados
+
+Una captura real contiene las direcciones MAC de los equipos utilizados. Para no publicar información sensible, se ha procedido al saneado de las capturas, sustituyendo las direcciones reales por direcciones ficticias. Estas sustituciones implican recalcular los checksums y el FCS de las tramas (<<rfc-1071-internet-checksum,RFC 1071>>; <<ieee-802-3,IEEE 802.3>>).
+
+`sanitize_capture.py` recibe un mapa de direcciones MAC desde un
+archivo privado gitignored y opera en cinco pasos:
+
+. *SUSTITUIR.* Cada dispositivo recibe una dirección local unicast distinta. Se sustituyen todas las apariciones configuradas, incluidas las que estén dentro de un payload. Se evitan las sustituciones en cascada. Broadcast, multicast y la dirección nula se conservan.
+. *REPARAR.* Los mecanismos de integridad se recalculan de dentro hacia fuera: ICMP / TCP / UDP → cabecera IPv4 → FCS Ethernet. UDP con checksum cero conserva el cero.
+. *APLICAR.* El cambio a la polaridad Manchester se realiza sólo en los intervalos de muestra correspondientes a los bits alterados. Se conservan la magnitud y el modo común de la señal original.
+. *VERIFICAR.* La salida se vuelve a decodificar desde las muestras y debe coincidir byte por byte con la trama calculada.
+. *REGISTRAR.* Los metadatos enumeran los rangos modificados, sin conservar ningún identificador original.
+
+.JSON de muestra del mapeo de direcciones MAC
+[source,json]
+----
+{
+  "macs": {
+    "02:00:00:00:00:01": "02:00:00:00:00:01",
+    "AA:BB:CC:11:22:33": "02:00:00:00:00:02"
+  }
+}
+----
+
+Cada mecanismo de integridad cubre al siguiente hacia
+fuera. El checksum de TCP incorpora una pseudocabecera con las direcciones IP; el
+de IPv4 cubre su propia cabecera; el FCS cubre toda la trama. Reparar de fuera
+hacia dentro obligaría a rehacer el trabajo en cada paso.
+
+El saneador se detiene sin escribir nada si
+la entrada está fragmentada, si el FCS de partida es inválido o si contiene un
+protocolo cuya reparación no está implementada.
+
+.Comando para sanear una captura
+[source,sh]
+----
+python3 src/lab/sanitize_capture.py captura-privada.npz \
+  --capture 1 --mac-map data/local/evidence/paper.mac-map.json \
+  -o data/captures/ethernet/captura-saneada.npz
+----
+
+Respecto a la limpieza de metadatos, el target `make
+clean-assets` retira los metadatos de autor, ubicación, cámara y edición de las
+imágenes y documentos de `docs/assets/` con la herramienta _exiftool_.
+
+.Laboratorio Manchester
+image::../assets/manchester-lab.png[Laboratorio Manchester,600]

@@ -1,0 +1,75 @@
+[glossary]
+= Glosario
+
+[glossary]
+API::
+    (Application Programming Interface) es un conjunto de reglas y funciones que permiten la comunicación entre diferentes aplicaciones de software.
+CLI::
+    (Command Line Interface) es una interfaz de línea de comandos que permite a los usuarios interactuar con un programa o sistema operativo mediante la entrada de comandos de texto
+CRC::
+    (Cyclic Redundancy Check) Código detector de errores que trata el mensaje
+    como un polinomio y transmite el resto de su división por un polinomio
+    generador fijo.
+Docker::
+    Es una plataforma de virtualización a nivel de sistema operativo que permite empaquetar y desplegar aplicaciones en contenedores, ofreciendo una mayor portabilidad y eficiencia en el desarrollo y ejecución de software.
+EtherType::
+    Es un campo en la trama Ethernet que indica el protocolo de la capa superior encapsulado en la trama.
+FCS::
+    (Frame Check Sequence) Campo final de la trama Ethernet. Contiene un
+    CRC de 32 bits calculado desde la dirección de destino hasta el último byte de
+    relleno. No cubre el preámbulo ni el SFD.
+I/G::
+    (Individual/Group) Bit menos significativo del primer octeto de una
+    dirección MAC. A 0 indica unicast; a 1, multicast o difusión.
+LLDP::
+    (Link Layer Discovery Protocol) Protocolo de capa de enlace que permite a
+    los dispositivos Ethernet anunciar sus capacidades e intercambiar
+    información de gestión; puede transportar datos de potencia PoE.
+MAC::
+    (Media Access Control) es la dirección física única asignada a la interfaz de red de un dispositivo, utilizada para la identificación y comunicación en la capa de enlace de datos.
+Manchester::
+    Código de línea en el que cada bit contiene una transición en su
+    punto medio, lo que permite recuperar el reloj a partir de los propios datos.
+MDI::
+    (Medium Dependent Interface) Punto de conexión entre el equipo y el
+    medio: en par trenzado, el conector RJ45 y sus ocho contactos.
+MitM::
+    (Man in the Middle) Posición de un tercero que intercepta una
+    comunicación entre dos extremos. Es el planteamiento inicial del proyecto, no
+    su resultado.
+MOSI::
+    (Master Out Slave In) Línea de datos del bus SPI que transporta datos desde el maestro hacia el esclavo.
+NPZ::
+    Formato de archivo comprimido de NumPy. Aquí conserva las muestras de los
+    canales junto con los metadatos de escala y frecuencia real de muestreo.
+OUI::
+    (Organizationally Unique Identifier) Primeros 24 bits de una dirección
+    MAC, asignados por la IEEE a un fabricante. Las direcciones administradas
+    localmente no expresan ninguna OUI.
+PCAPNG::
+    Formato de archivo de captura que sustituye a PCAP y admite metadatos
+    por interfaz, entre ellos la declaración de que la trama incluye su FCS.
+PD::
+    (Powered Device) Dispositivo alimentado a través del cable de red.
+PHY::
+    (Physical Layer Transceiver) es el circuito que implementa la capa física de una comunicación de red.
+PoC::
+    (Proof of Concept) se refiere a la demostración práctica o evidencia que verifica la viabilidad o funcionamiento de una idea, diseño o concepto antes de su implementación completa.
+PSE::
+    (Power Sourcing Equipment) Equipo que suministra la alimentación PoE,
+    detecta el PD, lo clasifica y vigila su presencia.
+Python::
+    Es un lenguaje de programación interpretado, de alto nivel y de propósito general. Es conocido por su sintaxis clara y legible, y es ampliamente utilizado en el desarrollo de aplicaciones, scripting, análisis de datos, inteligencia artificial y muchas otras áreas de la informática.
+SFD::
+    (Start Frame Delimiter) Byte `0xD5` que sigue al preámbulo y marca el
+    comienzo de la trama.
+SPI::
+    (Serial Peripheral Interface) Bus serie síncrono entre componentes de un
+    mismo equipo. No es una capa del modelo OSI.
+TLV::
+    (Type-Length-Value) Formato de campo que codifica un tipo, la longitud y el
+    valor de un dato; LLDP lo utiliza para transportar información estructurada.
+U/L::
+    (Universal/Local) Segundo bit menos significativo del primer octeto de
+    una dirección MAC. A 0 indica dirección asignada por el fabricante; a 1,
+    administrada localmente.

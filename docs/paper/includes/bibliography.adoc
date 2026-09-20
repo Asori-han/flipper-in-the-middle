@@ -1,0 +1,107 @@
+[[bibliography]]
+= Bibliografía
+
+[bibliography]
+* YouTube, «Osciloscopio HANDMATEK DOS1102 Primeras impresiones», \<<youtube.com>> [En línea]. Disponible: https://www.youtube.com/watch?v=UeLEcR6Sjn0 [Último acceso: 2026].
+* YouTube, «Analyzing actual Ethernet encoding | Networking tutorial (4 of 13)», \<<youtube.com>> [En línea]. Disponible: https://www.youtube.com/watch?v=i8CmibhvZ0c [Último acceso: 2026].
+* YouTube, «Analyzing Ethernet Encoding With Rigol Oscilloscope – DS1104», \<<youtube.com>> [En línea]. Disponible: https://www.youtube.com/watch?v=OTAY3rSwV_4 [Último acceso: 2026].
+* YouTube, «Flipper Zero - Write code to blink LED!», \<<youtube.com>> [En línea]. Disponible: https://www.youtube.com/watch?v=27RtJAxY2RY [Último acceso: 2026].
+* YouTube, «Flipper Zero - Write your own app (modifying the Skeleton App)», \<<youtube.com>> [En línea]. Disponible: https://www.youtube.com/watch?v=3OgPYkSm0EY [Último acceso: 2026].
+* YouTube, «Flipper Zero - Windows development environment», \<<youtube.com>> [En línea]. Disponible: https://www.youtube.com/watch?v=gqovwRkn2xw&list=PLM1cyTMe-PYJaMQ6TWeK1mAWxORdjYJZ5 [Último acceso: 2026].
+* YouTube, «Debes utilizar un ANALIZADOR LÓGICO - ¿Qué es un ANALIZADOR LÓGICO? - Wels Theory», \<<youtube.com>> [En línea]. Disponible: https://www.youtube.com/watch?v=SVKqm9-ta7E [Último acceso: 2026].
+
+* [[saleae-differential-guide]] Saleae, «Decode Differential and High Voltage Data», \<<saleae.com>> [En línea]. Disponible: https://www.saleae.com/support/protocol-analyzers/analyzer-user-guides/decode-differential-and-high-voltage-data [Último acceso: 2026].
+
+:link-with-underscores: @__hederagraph
+
+Ilustración de la portada realizada por Hedera. Instagram: https://www.instagram.com/__hederagraph/[{link-with-underscores}].
+
+== Referencias normativas
+
+[bibliography]
+=== Estándares IEEE
+
+* [[ieee-802-3]] IEEE, «IEEE Standard for Ethernet», IEEE Std 802.3.
+  Cláusula 3, formato de la trama MAC; cláusula 14, MAU de par trenzado
+  10BASE-T; cláusula 24 y 25, 100BASE-TX; cláusula 28, autonegociación;
+  cláusula 33, alimentación por la MDI (802.3af y 802.3at); cláusula 40,
+  1000BASE-T; cláusula 55, 10GBASE-T; cláusula 145, alimentación sobre las
+  líneas de datos (802.3bt); cláusula 79, TLV LLDP y potencia por la MDI.
+* [[ieee-802a]] IEEE, «IEEE Standard for Local and Metropolitan Area Networks:
+  Overview and Architecture — Amendment 1: Ethertypes for Prototype and Vendor
+  Specific Protocol Development», IEEE Std 802a.
+
+* [[ieee-802-1ab]] IEEE, «IEEE Standard for Local and metropolitan area networks—Station and
+  Media Access Control Connectivity Discovery», IEEE Std 802.1AB-2016. [En línea].
+  Disponible: https://standards.ieee.org/ieee/802.1AB/6047/ [Último acceso: 2026].
+
+[bibliography]
+=== ISO/IEC
+
+* [[iso-iec-7498-1]] ISO/IEC, «Information technology—Open Systems Interconnection—Basic Reference
+  Model: The Basic Model», ISO/IEC 7498-1:1994. [En línea]. Disponible:
+  https://committee.iso.org/standard/20269.html [Último acceso: 2026].
+
+El texto de IEEE 802.3 no es de acceso libre, la información disponible en Wikipedia, que cita el estándar como fuente, es la que se ha utilizado en este proyecto, complementándola con las demás fuentes citadas en la bibliografía.
+
+[bibliography]
+=== RFC
+
+* [[rfc-791-ipv4]] J. Postel, «Internet Protocol», RFC 791 (STD 5), IETF, 1981.
+  [En línea]. Disponible: https://www.rfc-editor.org/rfc/rfc791 [Último acceso: 2026].
+* [[rfc-792-icmp]] J. Postel, «Internet Control Message Protocol», RFC 792 (STD 5),
+  IETF, 1981. [En línea]. Disponible: https://www.rfc-editor.org/rfc/rfc792 [Último acceso: 2026].
+* [[rfc-826-arp]] D. C. Plummer, «An Ethernet Address Resolution Protocol»,
+  RFC 826 (STD 37), IETF, 1982.
+  [En línea]. Disponible: https://www.rfc-editor.org/rfc/rfc826 [Último acceso: 2026].
+* [[rfc-1071-internet-checksum]] R. Braden, D. Borman y C. Partridge, «Computing the Internet
+  Checksum», RFC 1071, IETF, 1988.
+  [En línea]. Disponible: https://www.rfc-editor.org/rfc/rfc1071 [Último acceso: 2026].
+* [[rfc-2131-dhcp]] R. Droms, «Dynamic Host Configuration Protocol», RFC 2131,
+  IETF, 1997. [En línea]. Disponible: https://www.rfc-editor.org/rfc/rfc2131 [Último acceso: 2026].
+* [[rfc-768-udp]] J. Postel, «User Datagram Protocol», RFC 768 (STD 6), IETF, 1980.
+  [En línea]. Disponible: https://www.rfc-editor.org/rfc/rfc768 [Último acceso: 2026].
+
+* [[rfc-1945-http-1-0]] T. Berners-Lee, R. Fielding y H. Frystyk, «Hypertext Transfer Protocol—HTTP/1.0»,
+  RFC 1945, IETF, 1996. [En línea]. Disponible:
+  https://www.rfc-editor.org/rfc/rfc1945 [Último acceso: 2026].
+* [[rfc-9110-http-semantics]] R. Fielding, M. Nottingham y J. Reschke, eds., «HTTP
+  Semantics», RFC 9110, IETF, 2022.
+  [En línea]. Disponible: https://www.rfc-editor.org/rfc/rfc9110 [Último acceso: 2026].
+* [[rfc-9293-tcp]] W. Eddy, ed., «Transmission Control Protocol (TCP)», RFC 9293
+  (STD 7), IETF, 2022. [En línea]. Disponible: https://www.rfc-editor.org/rfc/rfc9293 [Último acceso: 2026].
+
+RFC 1071 no corresponde a ningún protocolo de la lista, pero define el
+algoritmo del checksum de complemento a uno que comparten IPv4, ICMP, TCP y
+UDP. Es la referencia que sostiene la sección de saneado, donde se explica que
+los checksums se reparan de dentro hacia fuera.
+
+[bibliography]
+=== Formatos y documentación de producto
+
+* [[pcapng-spec]] IETF opsawg, «PCAP Next Generation (pcapng) Capture File
+  Format», Internet-Draft. [En línea]. Disponible:
+  https://github.com/IETF-OPSAWG-WG/draft-ietf-opsawg-pcap [Último acceso: 2026].
+* [[wireshark-docs]] Wireshark Foundation, «Wireshark User's Guide» y wiki
+  sobre Ethernet y FCS. [En línea]. Disponible: https://www.wireshark.org/docs/ [Último acceso: 2026].
+* [[w5500-datasheet]] WIZnet, «W5500 Datasheet». [En línea]. Disponible:
+  https://docs.wiznet.io/Product/iEthernet/W5500/datasheet [Último acceso: 2026].
+* [[flipper-zero-docs]] Flipper Devices, «Flipper Zero — GPIO & modules» y
+  documentación de aplicaciones externas. [En línea]. Disponible:
+  https://docs.flipper.net/ [Último acceso: 2026].
+* [[dos1102-manual]] HANMATEK, «Ficha técnica del osciloscopio DOS1102». [En línea].
+  Disponible: https://hanmatek.com/ [Último acceso: 2026].
+* [[usb-type-c-spec]] USB Implementers Forum, «USB Type-C», especificaciones y documentación
+  oficial. [En línea]. Disponible: https://www.usb.org/usbc [Último acceso: 2026].
+* [[usb-pd-spec]] USB Implementers Forum, «USB Power Delivery», especificación y documentación
+  oficial. [En línea]. Disponible: https://www.usb.org/usb-charger-pd [Último acceso: 2026].
+* [[dos1102-python-wrapper]] danielphili, «hanmatek_DOS1102_python_wrapper:
+  Python 3 interface for data extraction from a cheap oscilloscope», GitHub,
+  GPL-3.0. [En línea]. Disponible:
+  https://github.com/danielphili/hanmatek_DOS1102_python_wrapper [Último acceso: 2026].
+* [[ieee-ether-type-registry]] IEEE Registration Authority, «EtherType registry» y «MA-L
+  public listing». [En línea]. Disponible: https://regauth.standards.ieee.org/ [Último acceso: 2026].
+* [[tektronix-oscilloscope-primer]] Tektronix, «XYZs of Oscilloscopes» y «ABCs of Probes», guías de medida,
+  ancho de banda, muestreo y carga de sonda. [En línea]. Disponible:
+  https://www.tek.com/en/documents/primer/xyzs-oscilloscopes-primer y
+  https://www.tek.com/en/documents/whitepaper/abcs-probes-primer [Último acceso: 2026].

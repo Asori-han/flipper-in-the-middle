@@ -1,0 +1,383 @@
+[[annexe]]
+= Anexos
+
+== Anexo A: Desarrollo y despliegue de la aplicación para Flipper Zero
+
+Ethernet Lab convierte un Flipper Zero con un módulo <<w5500-datasheet,W5500>> en una fuente
+repetible de experimentos Ethernet. Un archivo de texto define la secuencia, de
+modo que la misma prueba puede capturarse con el osciloscopio, el analizador
+lógico y Wireshark.
+
+La integración del W5500 adapta trabajo de
+`dok2d/fz-W5500-lan-analyse`, bajo licencia MIT, y la biblioteca
+`ioLibrary_Driver` procede del proyecto oficial de WIZnet.
+
+La aplicación valida el guion completo antes de activar el W5500.
+
+Para correlacionar lo que genera la aplicación con los bytes que el W5500
+transmite, el analizador lógico se conecta en paralelo al bus SPI. El esquema
+muestra el cableado y los ajustes del decodificador de Logic 2; el osciloscopio
+permanece conectado al par Ethernet y no a las señales SPI.
+
+.Cableado simultáneo del Flipper Zero, el W5500 y el analizador lógico
+image::../../build/paper/flipper-w5500-logic2.png[Conexión paralela del bus SPI entre Flipper, W5500 y analizador lógico,pdfwidth=95%]
+
+El analizador observa el bus interno SPI, fuera del modelo OSI, para registrar
+los bytes que el Flipper entrega al W5500 y relacionarlos con la señal física y
+las capas decodificadas en Wireshark. Las sondas del osciloscopio permanecen en
+el par Ethernet. La masa del analizador es común y su VCC queda desconectado.
+Logic 2 se configura en modo 0, con palabras de 8 bits y MSB primero.
+
+.Órdenes disponibles en el guion de pruebas
+[cols="1,2,3",options="header"]
+|===
+|Orden |Argumentos |Efecto
+
+|`MAC` |MAC local unicast |Fija la dirección de origen del W5500
+|`IP`, `MASK`, `GATEWAY`, `DNS` |Dirección IPv4 |Configuración estática
+|`DHCP` |Tiempo límite, 1000-30000 ms |Discover, Offer, Request y ACK completos
+|`PHY` |`AUTO`, `10_HALF`, `10_FULL`, `100_HALF`, `100_FULL` |Negociación o modo forzado
+|`LINK` |Tiempo límite, 100-10000 ms |Espera el enlace e informa de velocidad y dúplex
+|`ARP` |IPv4, tiempo límite y cantidad (1-30) |Solicita e informa de la MAC del objetivo
+|`PING` |IPv4, cantidad, tiempo límite y patrón |Ecos ICMP. Patrones: `INCREMENT`, `00`, `FF`, `55`, `AA`
+|`HTTP_GET` |IPv4, puerto, ruta y cantidad (1-30) |Peticiones HTTP/1.0 en texto claro
+|`WAIT` |1-30000 ms |Pausa cancelable
+|`NOTE` |Hasta 96 caracteres |Marca en el log del dispositivo
+|===
+
+`HTTP_GET` admite deliberadamente sólo texto claro, porque su objetivo es que la
+petición permanezca inspeccionable en Wireshark.
+
+La aplicación calcula el checksum <<rfc-792-icmp,ICMP>> sobre
+cada patrón. El W5500 construye las cabeceras IPv4 y TCP de sus sockets IPRAW y
+TCP, y genera el FCS al transmitir. ARP se emite por MACRAW como trama de 60 bytes
+ya rellenada, y el controlador le añade el FCS (<<w5500-datasheet,documentación del W5500>>).
+
+.Cómo se organiza el código
+`ethernet_lab_app.c` se ocupa del ciclo de vida de
+la aplicación, la selección del archivo `.eth`, la vista de consola y el registro
+de resultados. Antes de iniciar el hardware, `script/script_parser.c` convierte
+el texto en una lista de órdenes tipadas; `script/script_runner.c` aplica la
+configuración y las ejecuta de forma cancelable. La capa `hal/w5500_hal.c`
+conecta la biblioteca ioLibrary con el SPI y los pines del Flipper, mientras que
+`protocols/ethernet_tests.c` reúne las operaciones DHCP, ARP, ICMP y HTTP. Los
+checksums auxiliares están aislados en `utils/checksum.c`. Esta separación deja
+el formato y la validación del guion independientes de los detalles del chip y
+de cada prueba de red.
+
+.Despliegue
+[source,sh]
+----
+git submodule update --init third_party/flipperzero-firmware
+scripts/build-flipper-app        # -> build/flipper/ethernet_lab.fap
+----
+
+Cada ejecución sobrescribe `last_run.log` con la ruta del guion y la secuencia
+completa de resultados.
+
+== Anexo B: Módulo OpenWrt para fijar la negociación
+
+El GL.iNet Mango no permite restringir la velocidad
+anunciada desde la configuración habitual de OpenWrt. Sin esa restricción el enlace
+negocia 100 Mbit/s y la codificación deja de ser Manchester, lo que hace imposible
+el experimento central del proyecto.
+
+La solución consiste en un módulo que actúa sobre el PHY por MDIO con tres
+escrituras: seleccionar la página `0x8000`, anunciar `0x0041` —selector más
+10BASE-T dúplex completo— y escribir `0x1200` para reiniciar la autonegociación.
+
+El módulo no impone una velocidad: restringe lo que el equipo anuncia y deja que
+la autonegociación transcurra con normalidad. El enlace resultante es un 10BASE-T
+negociado, no forzado.
+
+El código del módulo está en `src/openwrt/mt7628-phy-lab/src/mt7628_phy_lab.c`; los
+`Makefile` de `src/` y del paquete describen su compilación como módulo externo y
+su empaquetado para OpenWrt. En el C, `mii_write()` implementa el acceso MDIO a
+través de los registros del controlador Ethernet; `force_10base_t_full()` agrupa
+las tres escrituras del PHY y la rutina de inicialización decide si aplicarlas
+según el argumento `apply`. Al reiniciar el router se recupera la configuración normal.
+
+.Compilación y despliegue
+[source,sh]
+----
+docker compose build openwrt
+docker compose run --rm openwrt     # -> build/openwrt/: .ko, .ipk y SHA-256
+----
+
+En el router:
+
+.Carga del módulo en el router OpenWrt
+[source,sh]
+----
+insmod mt7628_phy_lab.ko apply=1
+----
+
+El volumen persistente `openwrt-build` conserva el toolchain y el núcleo
+compilados entre ejecuciones. Sin él, cada compilación reconstruiría el toolchain
+completo.
+
+== Anexo C: Toolkit de CLI para el osciloscopio
+
+El software gráfico suministrado con el DOS1102 depende de
+Windows y no ofrece automatización. El toolkit permite controlar el instrumento
+desde cualquier sistema, conservar las capturas en un formato abierto y repetir el
+análisis sin volver a conectar el hardware.
+
+.Punto de partida y desarrollo de `scope.py`
+Se partió del wrapper Python de Daniel Philipp para el DOS1102, publicado en
+https://github.com/danielphili/hanmatek_DOS1102_python_wrapper[GitHub] (<<dos1102-python-wrapper,wrapper original>>) y
+orientado principalmente a extraer datos por USB con PyUSB. Su función
+`query_and_show_response` sirvió como banco de pruebas: sobre esa base se probaron
+consultas SCPI genéricas y se fueron leyendo las respuestas y las órdenes que
+exponía el instrumento. El wrapper original remitía además a la lista SCPI del
+OWON SDS1102, un osciloscopio muy similar, y proponía ensayar consultas y observar
+las respuestas.
+
+Ese trabajo exploratorio permitió distinguir qué órdenes aceptaba realmente el
+DOS1102 y qué secuencias exigía su firmware. `scope.py` evolucionó así desde la
+extracción de datos hasta una herramienta de control por USB para las operaciones
+del laboratorio: consulta identidad y estado, configura la base de tiempos,
+inicia y detiene adquisiciones, captura la pantalla y descarga la memoria profunda
+con sus metadatos. Sobre ese núcleo, `poe_capture.py` añade la configuración de
+canales y disparo que requiere el ensayo PoE, y `capture_demo.py` coordina el
+osciloscopio con Logic 2 y el Flipper.
+
+.Workflow del toolkit
+[cols="1,3,3",options="header"]
+|===
+|Etapa |Componentes |Responsabilidad
+
+|Adquisición
+|`scope.py`
+|Habla por USB con el DOS1102, configura y adquiere; guarda muestras, metadatos y
+la respuesta binaria original para poder revisar cómo se interpretó la captura.
+
+|Validación y Ethernet
+|`scope_validation.py`, `manchester.py`, `decode_manchester.py`, `packet.py`,
+`sanitize_capture.py`
+|Recupera tramas de la señal analógica, decodifica Manchester y sanea MAC,
+checksums y FCS sin descartar la señal de origen.
+
+|Exportación y presentación
+|`export_capture.py`, `npz_to_svg.py`, `animate_manchester.py`, `animate_capture.py`
+|Genera HEX, PCAPNG, gráficos estáticos y animaciones a partir de las capturas
+validadas.
+
+|Analizador lógico y W5500
+|`capture_demo.py`, `import_logic2_csv.py`, `w5500_spi.py`, `analyze_w5500_spi.py`
+|Coordina las capturas de Logic 2, interpreta transacciones SPI y contrasta los
+bytes enviados al W5500 con la señal física.
+
+|PoE
+|`poe_capture.py`, `plot_poe_*.py`, `demo_poe.py`
+|Arma y recoge adquisiciones de tensión/corriente, analiza las formas de onda y
+ofrece una visualización en directo.
+|===
+
+Así, `scope.py` y `poe_capture.py` contienen la parte dependiente del instrumento;
+los analizadores y generadores trabajan después sobre NPZ y metadatos. Esta
+frontera facilita repetir el análisis y revisar los resultados sin hardware.
+
+== Anexo D: análisis del protocolo PoE
+
+PoE (Power over Ethernet) es un conjunto de procedimientos eléctricos descritos en <<ieee-802-3,IEEE 802.3>>, cláusula 33 para 802.3af y 802.3at, y cláusula 145 para 802.3bt. Permite alimentar
+dispositivos de red a través del cable de red, evitando la necesidad de una fuente
+de alimentación adicional. Cabe destacar que no viaja en la trama, por lo que nada de lo que hace PoE aparece en una captura de paquetes. Por eso el estudio exige un montaje, unas escalas y una instrumentación
+distintos.
+
+Con la ayuda de un multímetro, es necesario verificar que la fuente PoE está flotante antes de conectar la pinza de masa. Omitir esta compprobación puede destruir el equipo. La masa del osciloscopio está unida a la
+tierra de red; si la fuente PoE tuviera un camino real a tierra, conectar la
+pinza al conductor negativo crearía un cortocircuito a través del instrumento.
+
+El procedimiento consiste en medir con el multímetro entre el nodo y la masa del
+osciloscopio, y volver a medir cargando el nodo con una resistencia de 1 MΩ:
+
+.Comprobación de que la fuente PoE está flotante
+[cols="2,1,3",options="header"]
+|===
+|Medida |Valor |Interpretación
+
+|Tensión en vacío |17,77 V |No concluyente por sí sola
+|Tensión con 1 MΩ |4,19 V |La tensión se desploma al cargarla
+|Corriente implicada |≈ 4 µA |Acoplamiento capacitivo, no un camino a tierra
+|===
+
+Una fuente con camino real a tierra habría mantenido la tensión. El principio general es que una tensión que desaparece al cargarla mínimamente no procede de una fuente real. Una vez realizada esta comprobación, se puede conectar la pinza del osciloscopio con seguridad.
+
+.Fases de arranque PoE y clases de potencia, con las medidas del ensayo
+image::../../build/paper/poe-phases-and-classes.png[Secuencia PoE y sus rangos de tensión,pdfwidth=95%]
+
+Los niveles medidos proceden de `poe_startup_positive_20260911_193902.npz`;
+las bandas muestran los rangos de tensión indicados por IEEE 802.3, cláusula 33.
+El ensayo observó un único pulso de clasificación, coherente con un PD de Tipo 1;
+la vigilancia posterior con la línea alimentada no se capturó. Las clases 5 a 8,
+definidas en IEEE 802.3bt para potencias superiores, quedan fuera de este ensayo.
+
+.Clases de potencia PoE
+[cols="1,1,1,1,1",options="header"]
+|===
+|Clase |Corriente declarada |Potencia en el PSE |Garantizada al PD |Tipo
+
+|0 |0 a 4 mA |15,4 W |12,95 W |1
+|1 |9 a 12 mA |4,0 W |3,84 W |1
+|2 |17 a 20 mA |7,0 W |6,49 W |1
+|3 |26 a 30 mA |15,4 W |12,95 W |1
+|4 |36 a 44 mA |30,0 W |25,50 W |2
+|===
+
+IEEE 802.3af, incorporado como Tipo 1 en la cláusula 33, define un suministro de
+hasta 15,4 W medidos en el PSE, de los que el PD tiene garantizados 12,95 W; la
+diferencia es la pérdida máxima admitida en el cable. IEEE 802.3at añade el Tipo 2,
+que eleva esas cifras a 30 W y 25,50 W respectivamente. La clase 0 es el valor por
+defecto: un PD que no declara nada recibe el mismo trato que la clase 3.
+
+.Fases de arranque PoE
+[cols="2,2,3",options="header"]
+|===
+|Fase |Rango del estándar |Qué ocurre
+
+|Detección |2,8 a 10 V, dos puntos
+|El PSE aplica dos tensiones distintas y calcula la pendiente dV/dI buscando la
+resistencia de firma de unos 25 kΩ. Emplea dos puntos, y no uno, para cancelar las
+caídas de tensión fijas del PD. Aquí el PD es pasivo: se limita a ser medido
+
+|Clasificación |15,5 a 20,5 V
+|El PSE mide la corriente que el PD consume. Esa corriente es la declaración de
+clase. Aquí el PD es activo: actúa para declararse
+
+|Alimentación |44 a 57 V
+|No es un sondeo más: es ya la alimentación, y permanece aplicada
+
+|Vigilancia |Con la línea alimentada
+|El PSE comprueba que el PD sigue consumiendo una corriente mínima. No fue posible capturarlo en este ensayo
+|===
+
+.Resultados del ensayo
+[cols="2,1,1,2",options="header"]
+|===
+|Fase |Duración |Tensión |Corriente total
+
+|Detección, primer punto |116,5 ms |5,02 V |1,51 ± 0,04 mA
+|Detección, segundo punto |142,0 ms |8,95 V |1,57 ± 0,04 mA
+|Clasificación |6,9 ms |19,57 V |29,85 ± 0,18 mA
+|Alimentación |resto |54,29 V |29,05 ± 0,28 mA
+|===
+
+.Capturas y análisis reproducible
+[cols="2,3,3",options="header"]
+|===
+|Resultado |Captura publicada |Análisis reproducible
+
+|Secuencia completa y comparación tensión/corriente
+|`poe_full_sequence_20260911_230051.npz`
+|`plot_poe_startup.py <captura> --current --shunt 10 --invert-current --invert-voltage`
+
+|Arranque y repetición con polaridad invertida
+|`poe_startup_positive_20260911_193902.npz` y `poe_startup_reversed_20260911_192627.npz`
+|`plot_poe_startup.py <captura>`; añadir `--invert-voltage` para la captura invertida
+
+|Corriente de clasificación y mesetas
+|`poe_current_20260911_201209.npz`
+|`plot_poe_current.py --shunt 10`
+
+|Flanco de conexión, retardo y pico de corriente
+|`poe_power_on_edge_20260911_210434.npz`
+|`plot_poe_edge.py --shunt 10`
+
+|Retirada de alimentación y retorno a reposo
+|`poe_power_removal_20260911_214836.npz`
+|`plot_poe_removal.py --shunt 10`
+|===
+
+Fue necesario añadir el parámetro `--invert-voltage` debido al modo en que el osciloscopio estaba conectado, que invertía la polaridad de la señal medida para respetar la masa común del circuito.
+
+Las capturas NPZ y sus metadatos están versionados en `data/captures/poe/`.
+
+La adquisición también tiene un flujo reproducible: `poe_capture.py probe` consulta
+el estado del instrumento; `arm` configura canales y disparo; tras provocar el
+evento, `collect` descarga la memoria cuando el osciloscopio está detenido y guarda
+NPZ, metadatos y respuesta binaria. La separación entre armado y descarga evita
+interrogar el USB durante la medida y permite reconstruir después las escalas y
+conversiones usadas por los gráficos.
+
+.Montaje de dos canales para medir tensión y corriente PoE
+image::../../build/paper/poe-dual-channel-measurement.png[Montaje de medida PoE con dos canales,pdfwidth=60%]
+
+.Configuración del laboratorio
+image::../assets/poe-lab.png[Laboratorio PoE,600]
+
+.Negociación de potencia: PoE y USB-C
+PoE y USB-C resuelven un problema parecido: que una fuente y un dispositivo
+acuerden si es seguro suministrar energía y cuánta. En ambos casos hay un
+extremo que ofrece potencia y otro que la recibe, y la fuente no debe aplicar
+cualquier nivel sin comprobar antes las capacidades del receptor y de la
+conexión. Sin embargo, *USB-C es el tipo de conector; USB Power Delivery (USB PD)
+es el protocolo opcional que permite negociar perfiles de potencia más allá del
+anuncio básico del conector*.
+
+.Comparación de las fases de negociación de potencia
+[cols="1,2,2",options="header"]
+|===
+|Aspecto |PoE (IEEE 802.3) |USB-C y USB PD
+
+|Detección inicial
+|El PSE busca la firma eléctrica del PD con una señal de baja tensión y después
+puede clasificarlo aplicando otro rango de tensión y midiendo su corriente.
+|Los pines CC detectan conexión, orientación y roles. Sin USB PD, Rp/Rd permite
+anunciar corriente disponible con VBUS a 5 V; el conector por sí solo no implica
+una negociación de alta tensión.
+
+|Intercambio de potencia
+|La detección y clasificación PoE son señales eléctricas en el cable Ethernet,
+antes de que sea necesario intercambiar tramas de datos. El PSE decide si
+concede alimentación según la firma, la clase y su presupuesto.
+|Con USB PD, fuente y consumidor intercambian mensajes digitales por CC: la
+fuente anuncia sus capacidades y el consumidor solicita un perfil. La fuente
+acepta o rechaza la solicitud y ajusta VBUS conforme al contrato acordado.
+
+|Medio y señalización
+|La energía y los datos Ethernet comparten los pares del cable; la detección y
+la clasificación pertenecen a la capa física.
+|La energía circula por VBUS y GND; la señalización de USB PD viaja por CC, un
+conductor distinto de las líneas de datos USB.
+|===
+
+Hay, por tanto, una capa adicional en algunas instalaciones PoE: una vez que el
+enlace Ethernet está operativo, *LLDP* puede intercambiar TLV de potencia para
+comunicar o ajustar la potencia solicitada y asignada. Es una negociación de
+capa de enlace que complementa la detección y clasificación eléctricas; no las
+sustituye ni está presente en todas las implementaciones (<<ieee-802-1ab,IEEE 802.1AB>>; <<ieee-802-3,IEEE 802.3>>). En USB-C, <<usb-pd-spec,USB PD>> añade
+su propio protocolo de mensajes y máquina de políticas sobre la señalización de
+CC. La enumeración USB y sus protocolos de datos son independientes: un contrato
+USB PD no requiere que el dispositivo se enumere como periférico de datos.
+
+.Gráficas de las capturas
+image::../../build/figures/poe-secuencia.png[Secuencia PoE completa con tensión y corriente,pdfwidth=95%]
+
+La figura se genera a partir de `poe_full_sequence_20260911_230051.npz` y reúne
+las cuatro fases en una única adquisición.
+
+.Arranque PoE y rangos de detección, clasificación y alimentación
+image::../../build/figures/poe-arranque.png[Arranque PoE,pdfwidth=95%]
+
+La captura `poe_startup_positive_20260911_193902.npz` permite observar el arranque
+con la polaridad física normalizada.
+
+.Corriente de clasificación y mesetas del PSE
+image::../../build/figures/poe-corriente.png[Corriente de clasificación PoE,pdfwidth=95%]
+
+La corriente de clasificación se calcula con el shunt de 10 Ω de
+`poe_current_20260911_201209.npz`.
+
+.Flanco de conexión de potencia PoE
+image::../../build/figures/poe-flanco.png[Flanco de conexión PoE,pdfwidth=95%]
+
+El detalle de `poe_power_on_edge_20260911_210434.npz` muestra el retardo entre la
+subida de tensión y la corriente de entrada.
+
+.Retirada de la alimentación PoE
+image::../../build/figures/poe-retirada.png[Retirada de alimentación PoE,pdfwidth=95%]
+
+La retirada se analiza con `poe_power_removal_20260911_214836.npz`; el gráfico
+permite distinguir la caída de tensión de la decisión posterior del PSE de volver
+a detección.

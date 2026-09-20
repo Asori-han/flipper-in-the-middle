@@ -1,0 +1,39 @@
+services:
+  general:
+    build:
+      context: .
+      dockerfile: docker/general.Dockerfile
+    image: flipper-in-the-middle-general:22.04
+    platform: linux/amd64
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+
+  flipper:
+    build:
+      context: .
+      dockerfile: docker/flipper.Dockerfile
+    image: flipper-in-the-middle-flipper:1.4.3
+    platform: linux/amd64
+    working_dir: /workspace
+    command: make flipper
+    volumes:
+      - .:/workspace
+
+  openwrt:
+    build:
+      context: .
+      dockerfile: docker/openwrt.Dockerfile
+    image: flipper-in-the-middle-openwrt:22.03.4
+    platform: linux/amd64
+    working_dir: /workspace
+    command: make openwrt
+    environment:
+      OPENWRT_BUILD_DIR: /build-cache/openwrt
+    volumes:
+      - .:/workspace
+      - openwrt-build:/build-cache
+
+volumes:
+  openwrt-build:
+    name: openwrt-build

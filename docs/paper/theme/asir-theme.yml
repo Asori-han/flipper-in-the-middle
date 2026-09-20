@@ -1,0 +1,15 @@
+extends: default
+base:
+  font-size: 10
+footer:
+  left:
+    content: '{page-number}'
+image:
+  caption:
+    align: inherit
+header:
+  sectlevels: 1
+  height: 15mm     #2
+  recto: &header   #3
+    left-content: '{section-title}' #4
+  verso: *header   #5

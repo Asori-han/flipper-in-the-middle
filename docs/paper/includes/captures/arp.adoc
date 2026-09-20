@@ -1,0 +1,36 @@
+= Captura ARP
+
+ifndef::capture-images-dir[:capture-images-dir: ../../../../build/captures]
+
+== Evidencia utilizada
+
+.Archivos y artefactos de la captura ARP
+[cols="2,4"]
+|===
+|Guion |`scope-arp.eth`
+|NPZ saneado |`data/captures/ethernet/20260913_121908_arp.npz`
+|Artefactos |`build/captures/arp.*`
+|===
+
+== Señal analógica y analizador lógico
+
+.Señal Ethernet diferencial de la prueba ARP
+image::{capture-images-dir}/arp_full.png[Señal analógica ARP,align="center"]
+
+.Detalle de la señal analógica y decodificación Manchester
+image::{capture-images-dir}/arp_overlay.png[Overlay analógico ARP,align="center"]
+
+.Señal digital SPI y campos presentes en el cable
+image::{capture-images-dir}/arp_spi.png[Comparación digital SPI y trama física ARP,align="center"]
+
+ARP ofrece la comparación más directa porque MACRAW sí cruza SPI como una trama
+Ethernet de 60 bytes: cabecera, ARP y relleno coinciden por posición. La barra del
+cable añade únicamente los cuatro bytes rayados `02 d7 35 4a`.
+
+== Salida HEX
+
+.Trama ARP reconstruida en hexadecimal
+[source,text]
+----
+include::../../../../build/captures/arp.hex[]
+----

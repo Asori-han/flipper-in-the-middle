@@ -1,0 +1,6 @@
+*
+!Gemfile
+!Gemfile.lock
+!requirements/
+!requirements/lab.txt
+!requirements/demo.txt

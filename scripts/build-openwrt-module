@@ -1,0 +1,98 @@
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+REPO_DIR=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
+OPENWRT_SOURCE_DIR="$REPO_DIR/third_party/openwrt"
+OPENWRT_DIR=${OPENWRT_BUILD_DIR:-$OPENWRT_SOURCE_DIR}
+PACKAGE_DIR="$REPO_DIR/src/openwrt/mt7628-phy-lab"
+MOUNT="$OPENWRT_DIR/package/kernel/mt7628-phy-lab"
+OUTPUT_DIR="$REPO_DIR/build/openwrt"
+JOBS=${JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || printf '4')}
+
+if [ ! -f "$OPENWRT_SOURCE_DIR/rules.mk" ]; then
+    echo "The OpenWrt submodule is missing. Run: git submodule update --init" >&2
+    exit 1
+fi
+
+if [ "$OPENWRT_DIR" != "$OPENWRT_SOURCE_DIR" ]; then
+    SOURCE_REVISION=$(git -C "$OPENWRT_SOURCE_DIR" rev-parse HEAD)
+    REVISION_FILE="$OPENWRT_DIR/.flipper-in-the-middle-openwrt-revision"
+
+    if [ ! -f "$OPENWRT_DIR/rules.mk" ]; then
+        mkdir -p "$OPENWRT_DIR"
+        git -C "$OPENWRT_SOURCE_DIR" archive HEAD | tar -x -C "$OPENWRT_DIR"
+        printf '%s\n' "$SOURCE_REVISION" > "$REVISION_FILE"
+    elif [ ! -f "$REVISION_FILE" ] && [ -d "$OPENWRT_DIR/.git" ] && \
+         [ "$(git -C "$OPENWRT_DIR" rev-parse HEAD)" = "$SOURCE_REVISION" ]; then
+        printf '%s\n' "$SOURCE_REVISION" > "$REVISION_FILE"
+    elif [ ! -f "$REVISION_FILE" ] || [ "$(cat "$REVISION_FILE")" != "$SOURCE_REVISION" ]; then
+        echo "The OpenWrt volume belongs to a different revision." >&2
+        echo "Remove it with: docker compose down -v" >&2
+        exit 1
+    fi
+fi
+
+if [ -L "$MOUNT" ] && [ "$(readlink "$MOUNT")" = "$PACKAGE_DIR" ]; then
+    rm -f "$MOUNT"
+elif [ -e "$MOUNT" ] || [ -L "$MOUNT" ]; then
+    echo "$MOUNT already exists; the submodule will not be modified." >&2
+    exit 1
+fi
+
+cleanup() {
+    rm -f "$MOUNT"
+}
+trap cleanup EXIT HUP INT TERM
+ln -s "$PACKAGE_DIR" "$MOUNT"
+
+cd "$OPENWRT_DIR"
+cp "$REPO_DIR/src/openwrt/gl-mt300n-v2.config" .config
+make defconfig
+
+if command -v sha256sum >/dev/null 2>&1; then
+    KERNEL_CONFIG_HASH=$(sha256sum .config | cut -d ' ' -f 1)
+else
+    KERNEL_CONFIG_HASH=$(shasum -a 256 .config | cut -d ' ' -f 1)
+fi
+KERNEL_STAMP="$OPENWRT_DIR/tmp/.flipper-in-the-middle-kernel-config-sha256"
+
+TOOLCHAIN_CC=$(find staging_dir -type f \
+    -path '*/bin/mipsel-openwrt-linux-musl-gcc' -print -quit 2>/dev/null || true)
+if [ -z "$TOOLCHAIN_CC" ]; then
+    echo "Building the OpenWrt tools and MIPS toolchain for the first time..."
+    printf 'Tools started: %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+    time -p make -j"$JOBS" tools/install V=s
+    printf 'Toolchain started: %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+    time -p make -j"$JOBS" toolchain/install V=s
+fi
+
+KERNEL_SYMVERS=$(find build_dir -type f -path '*/linux-*/Module.symvers' -print -quit 2>/dev/null || true)
+if [ -z "$KERNEL_SYMVERS" ] || [ ! -f "$KERNEL_STAMP" ] || \
+   [ "$(cat "$KERNEL_STAMP" 2>/dev/null || true)" != "$KERNEL_CONFIG_HASH" ]; then
+    echo "Preparing the OpenWrt 22.03.4 kernel..."
+    printf 'Kernel started: %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+    time -p make -j"$JOBS" target/linux/compile V=s
+    mkdir -p "$(dirname "$KERNEL_STAMP")"
+    printf '%s\n' "$KERNEL_CONFIG_HASH" > "$KERNEL_STAMP"
+else
+    echo "Reusing the OpenWrt kernel from the persistent cache."
+fi
+printf 'Module started: %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+time -p make -j"$JOBS" package/mt7628-phy-lab/compile V=s
+
+mkdir -p "$OUTPUT_DIR"
+MODULE=$(find build_dir -type f -path '*/mt7628-phy-lab/mt7628_phy_lab.ko' -print -quit)
+if [ -z "$MODULE" ]; then
+    echo "OpenWrt completed without producing mt7628_phy_lab.ko." >&2
+    exit 1
+fi
+cp "$MODULE" "$OUTPUT_DIR/mt7628_phy_lab.ko"
+
+find bin -type f -name 'kmod-mt7628-phy-lab*.ipk' -exec cp {} "$OUTPUT_DIR/" \;
+if command -v sha256sum >/dev/null 2>&1; then
+    (cd "$OUTPUT_DIR" && sha256sum mt7628_phy_lab.ko > mt7628_phy_lab.ko.sha256)
+else
+    (cd "$OUTPUT_DIR" && shasum -a 256 mt7628_phy_lab.ko > mt7628_phy_lab.ko.sha256)
+fi
+printf 'Module generated at %s\n' "$OUTPUT_DIR/mt7628_phy_lab.ko"

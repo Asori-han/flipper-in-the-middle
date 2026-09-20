@@ -1,0 +1,47 @@
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+REPO_DIR=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
+VENV_DIR="$REPO_DIR/build/cache/venv-demo"
+DEPS_DIR="$REPO_DIR/build/cache/deps"
+LOGIC_REPO="$DEPS_DIR/logic2-automation"
+FLIPPER_REPO="$DEPS_DIR/flipperzero_protobuf_py"
+LOGIC_COMMIT=ee5e1ceebfb63c285828eb337f597f133f7125e4
+FLIPPER_COMMIT=412d5183064801e420b9d01443bfc9211a8294a5
+
+checkout_commit() {
+    repository=$1
+    directory=$2
+    commit=$3
+    if [ ! -d "$directory/.git" ]; then
+        git clone --filter=blob:none "$repository" "$directory"
+    fi
+    if ! git -C "$directory" cat-file -e "$commit^{commit}" 2>/dev/null; then
+        git -C "$directory" fetch --depth 1 origin "$commit"
+    fi
+    git -C "$directory" checkout --detach "$commit"
+}
+
+python3 -m venv "$VENV_DIR"
+"$VENV_DIR/bin/python" -m pip install --upgrade pip
+"$VENV_DIR/bin/python" -m pip install -r "$REPO_DIR/requirements/demo.txt"
+
+mkdir -p "$DEPS_DIR"
+checkout_commit https://github.com/saleae/logic2-automation.git "$LOGIC_REPO" "$LOGIC_COMMIT"
+checkout_commit https://github.com/flipperdevices/flipperzero_protobuf_py.git "$FLIPPER_REPO" "$FLIPPER_COMMIT"
+
+# Saleae keeps the .proto file as source and excludes generated modules from the
+# wheel. Generate them with the pinned versions, then install the editable checkout.
+"$VENV_DIR/bin/python" -m grpc_tools.protoc \
+    -I "$LOGIC_REPO/proto" \
+    --python_out="$LOGIC_REPO/python" \
+    --grpc_python_out="$LOGIC_REPO/python" \
+    "$LOGIC_REPO/proto/saleae/grpc/saleae.proto"
+"$VENV_DIR/bin/python" -m pip install --no-deps -e "$LOGIC_REPO/python"
+# The bundled Flipper client bindings work with protobuf 5. Use the checkout
+# directly instead of installing its metadata, which pins protobuf 4.
+"$VENV_DIR/bin/python" -m pip uninstall -y flipperzero-protobuf >/dev/null 2>&1 || true
+
+printf '\nReady. Check the setup with:\n%s\n' \
+    "$SCRIPT_DIR/run-demo-capture --dry-run"

@@ -1,0 +1,174 @@
+#!/usr/bin/env python3
+"""Remove private metadata from files stored in docs/assets."""
+
+from __future__ import annotations
+
+import argparse
+import shutil
+import subprocess
+import sys
+import tempfile
+import zipfile
+from pathlib import Path
+from xml.etree import ElementTree
+
+
+ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_ASSETS = ROOT / "docs" / "assets"
+OOXML = {".docx", ".pptx", ".xlsx"}
+RASTER = {".gif", ".heic", ".heif", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
+def clean_raster_bytes(data: bytes, suffix: str, exiftool: str) -> bytes:
+    with tempfile.NamedTemporaryFile(suffix=suffix) as temporary:
+        temporary.write(data)
+        temporary.flush()
+        clean_raster(Path(temporary.name), exiftool)
+        return Path(temporary.name).read_bytes()
+
+
+def clean_ooxml(path: Path, exiftool: str) -> None:
+    """Remove package properties and normalize ZIP timestamps."""
+    mode = path.stat().st_mode
+    with tempfile.NamedTemporaryFile(
+        dir=path.parent, prefix=f".{path.name}.", suffix=".tmp", delete=False
+    ) as temporary:
+        output = Path(temporary.name)
+    try:
+        with zipfile.ZipFile(path, "r") as source, zipfile.ZipFile(
+            output, "w", compression=zipfile.ZIP_DEFLATED
+        ) as target:
+            for entry in source.infolist():
+                name = entry.filename
+                if name.startswith("docProps/"):
+                    continue
+                data = source.read(entry)
+                if name == "_rels/.rels":
+                    root = ElementTree.fromstring(data)
+                    for child in list(root):
+                        if child.attrib.get("Target", "").startswith("docProps/"):
+                            root.remove(child)
+                    data = ElementTree.tostring(root, encoding="utf-8", xml_declaration=True)
+                elif name == "[Content_Types].xml":
+                    root = ElementTree.fromstring(data)
+                    for child in list(root):
+                        if child.attrib.get("PartName", "").startswith("/docProps/"):
+                            root.remove(child)
+                    data = ElementTree.tostring(root, encoding="utf-8", xml_declaration=True)
+                elif name.startswith(("word/media/", "ppt/media/", "xl/media/")):
+                    suffix = Path(name).suffix.lower()
+                    if suffix in RASTER:
+                        data = clean_raster_bytes(data, suffix, exiftool)
+                clean_entry = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+                clean_entry.compress_type = zipfile.ZIP_DEFLATED
+                clean_entry.external_attr = entry.external_attr
+                clean_entry.create_system = entry.create_system
+                target.writestr(clean_entry, data)
+        output.chmod(mode)
+        output.replace(path)
+    finally:
+        output.unlink(missing_ok=True)
+
+
+def clean_svg(path: Path) -> None:
+    tree = ElementTree.parse(path)
+    root = tree.getroot()
+    for parent in root.iter():
+        for child in list(parent):
+            if child.tag.rsplit("}", 1)[-1] == "metadata":
+                parent.remove(child)
+        for attribute in list(parent.attrib):
+            if "inkscape" in attribute or "sodipodi" in attribute:
+                del parent.attrib[attribute]
+    tree.write(path, encoding="utf-8", xml_declaration=True)
+
+
+def clean_raster(path: Path, exiftool: str) -> None:
+    subprocess.run(
+        [exiftool, "-overwrite_original", "-all=", str(path)],
+        check=True,
+        stdout=subprocess.DEVNULL,
+    )
+
+
+def clean_pdf(path: Path, exiftool: str, qpdf: str) -> None:
+    """Remove document metadata, then rewrite the PDF to discard old objects."""
+    mode = path.stat().st_mode
+    with tempfile.TemporaryDirectory(dir=path.parent, prefix=f".{path.name}.") as directory:
+        source = Path(directory) / "source.pdf"
+        output = Path(directory) / "output.pdf"
+        shutil.copyfile(path, source)
+        subprocess.run(
+            [exiftool, "-overwrite_original", "-PDF:All=", "-XMP:All=", str(source)],
+            check=True,
+            stdout=subprocess.DEVNULL,
+        )
+        subprocess.run(
+            [
+                qpdf,
+                "--warning-exit-0",
+                "--object-streams=generate",
+                "--stream-data=compress",
+                source,
+                output,
+            ],
+            check=True,
+        )
+        subprocess.run([qpdf, "--check", output], check=True, stdout=subprocess.DEVNULL)
+        output.chmod(mode)
+        output.replace(path)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Remove private metadata from publishable assets"
+    )
+    parser.add_argument("paths", nargs="*", type=Path, default=[DEFAULT_ASSETS])
+    args = parser.parse_args()
+    inputs = [path.resolve() for path in args.paths]
+    missing = [path for path in inputs if not path.exists()]
+    if missing:
+        parser.error(f"path does not exist: {missing[0]}")
+    files = sorted(
+        {
+            candidate
+            for path in inputs
+            for candidate in ([path] if path.is_file() else path.rglob("*"))
+            if candidate.is_file()
+        }
+    )
+    needs_exiftool = any(
+        path.suffix.lower() in RASTER | OOXML | {".pdf"} for path in files
+    )
+    exiftool = shutil.which("exiftool")
+    if needs_exiftool and not exiftool:
+        print("ExifTool is required to clean the selected files", file=sys.stderr)
+        return 2
+    pdf = any(path.suffix.lower() == ".pdf" for path in files)
+    qpdf = shutil.which("qpdf")
+    if pdf and not qpdf:
+        print("qpdf is required to rewrite PDF files", file=sys.stderr)
+        return 2
+
+    cleaned = 0
+    for path in files:
+        suffix = path.suffix.lower()
+        if suffix in OOXML:
+            clean_ooxml(path, exiftool)
+        elif suffix == ".svg":
+            clean_svg(path)
+        elif suffix in RASTER:
+            clean_raster(path, exiftool)
+        elif suffix == ".pdf":
+            clean_pdf(path, exiftool, qpdf)
+        else:
+            continue
+        try:
+            print(path.relative_to(ROOT))
+        except ValueError:
+            print(path)
+        cleaned += 1
+    print(f"Cleaned {cleaned} asset(s)")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

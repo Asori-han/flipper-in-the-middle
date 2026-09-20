@@ -1,0 +1,32 @@
+= Captura ICMP con payload ff
+
+ifndef::capture-images-dir[:capture-images-dir: ../../../../build/captures]
+
+== Evidencia utilizada
+
+.Archivos y artefactos de la captura ICMP ff
+[cols="2,4"]
+|===
+|Guion |`scope-ff.eth`
+|NPZ saneado |`data/captures/ethernet/20260913_031956_ff.npz`
+|Artefactos |`build/captures/icmp-ff.*`
+|===
+
+== Señal analógica y analizador lógico
+
+.Señal Ethernet diferencial de la prueba ff
+image::{capture-images-dir}/icmp-ff_full.png[Señal analógica ICMP ff,align="center"]
+
+.Detalle de la señal analógica y decodificación Manchester
+image::{capture-images-dir}/icmp-ff_overlay.png[Overlay analógico ICMP ff,align="center"]
+
+.Señal digital SPI y campos presentes en el cable
+image::{capture-images-dir}/icmp-ff_spi.png[Comparación digital SPI y trama física ICMP ff,align="center"]
+
+== Salida HEX
+
+.Trama ICMP ff reconstruida en hexadecimal
+[source,text]
+----
+include::../../../../build/captures/icmp-ff.hex[]
+----

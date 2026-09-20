@@ -1,0 +1,11 @@
+[[conclusions]]
+= Conclusiones
+El proyecto ha permitido explorar en profundidad la captura y análisis de tramas Ethernet a nivel físico, así como la verificación de su integridad mediante FCS y checksums de capas superiores. Se ha demostrado que es posible obtener capturas válidas y saneadas, garantizando la fidelidad de los datos observados.
+
+Un proyecto de esta envergadura no habría sido factible en términos de tiempo como proyecto final de Administración de Sistemas Informáticos en Red sin el apoyo de IA, dada la complejidad de la captura y análisis a nivel físico y la necesidad de garantizar la integridad de los datos, así como la exigencia autoimpuesta de mantener unas buenas prácticas, no publicando información sensible.
+
+Esta palanca ha permitido llegar mucho más lejos de lo que habría sido posible únicamente con los recursos humanos disponibles, acelerando el análisis y la verificación de las tramas capturadas y asegurando un alto nivel de rigor en la documentación de los resultados, aportando un mayor valor para el lector y un aprendizaje más profundo sobre el funcionamiento de la red a nivel físico.
+
+La combinación de técnicas tradicionales de captura y análisis con el apoyo de IA ha demostrado ser una estrategia eficaz para abordar proyectos complejos en el ámbito de las redes, ofreciendo resultados precisos y fiables que de otro modo habrían sido difíciles de alcanzar.
+
+El desarrollo del repositorio se ha fundamentado en la automatización de scripts deterministas multiplataforma, que permiten reproducir el proyecto de manera consistente y garantizar la validez de las capturas y análisis realizados. Esta metodología asegura que los resultados obtenidos sean verificables y que cualquier investigador pueda replicar los experimentos bajo las mismas condiciones, fortaleciendo la fiabilidad y la transparencia del trabajo realizado.

@@ -1,0 +1,22 @@
+App(
+    appid="ethernet_lab",
+    name="Ethernet Lab",
+    apptype=FlipperAppType.EXTERNAL,
+    entry_point="ethernet_lab_app",
+    stack_size=4 * 1024,
+    fap_category="GPIO",
+    fap_icon="assets/icon.png",
+    fap_author="Jansu Soria Cubas",
+    fap_version="0.3.0",
+    fap_description="Scriptable Ethernet demonstrations for Flipper Zero and W5500",
+    fap_weburl="https://github.com/Asori-han/flipper-in-the-middle",
+    requires=["gui"],
+    sources=["*.c*", "!tests"],
+    fap_private_libs=[
+        Lib(
+            name="ioLibrary_Driver",
+            fap_include_paths=["Ethernet/W5500", "Ethernet", "Internet/DHCP"],
+            sources=["Ethernet/W5500/*.c", "Ethernet/*.c", "Internet/DHCP/*.c"],
+        ),
+    ],
+)

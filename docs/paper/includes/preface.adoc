@@ -1,0 +1,13 @@
+[quote, Arthur Conan Doyle,Sherlock Holmes]
+Mi método: observar los detalles insignificantes.
+
+---
+
+:sectnums!:
+[dedication%notitle]
+== Dedicatoria
+
+[.text-right]
+ユキとシヴィへ、いつもありがとう。
+
+<<<

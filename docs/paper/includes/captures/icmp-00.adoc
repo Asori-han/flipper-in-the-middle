@@ -1,0 +1,91 @@
+= Captura ICMP con payload 00
+
+ifndef::capture-images-dir[:capture-images-dir: ../../../../build/captures]
+
+== Evidencia utilizada
+
+.Archivos y artefactos de la captura ICMP 00
+[cols="2,4"]
+|===
+|Guion |`scope-00.eth`
+|NPZ saneado |`data/captures/ethernet/20260913_031915_00.npz`
+|Artefactos |`build/captures/icmp-00.*`
+|===
+
+== Señal analógica y analizador lógico
+
+El DOS1102 capturó a 50 MS/s una ráfaga Manchester de 69,04 µs. La trama
+recuperada mide 78 bytes y contiene 32 bytes `00` como payload ICMP.
+
+.Señal Ethernet diferencial de la prueba 00
+image::{capture-images-dir}/icmp-00_full.png[Señal analógica ICMP 00,align="center"]
+
+.Detalle de la señal analógica y decodificación Manchester
+image::{capture-images-dir}/icmp-00_overlay.png[Overlay analógico ICMP 00,align="center"]
+
+El _overlay_ muestra las muestras del DOS1102, el nivel lógico recuperado y los
+ocho primeros bytes posteriores al SFD antes de pasar a la observación SPI.
+
+Logic 2 observó el SPI Flipper-W5500 a 12 MS/s, no la forma de onda Ethernet.
+Los 40 bytes del paquete ICMP aparecen en el TX IPRAW del socket 1, offset 1120.
+El FCS no cruza SPI: lo añade el controlador al transmitir.
+
+.Señal digital SPI y campos presentes en el cable
+image::{capture-images-dir}/icmp-00_spi.png[Comparación digital SPI y trama física ICMP 00,align="center"]
+
+MOSI (Master Out Slave In) contiene únicamente la cabecera ICMP y sus 32 bytes `00`. La representación
+de la trama física añade delante las cabeceras Ethernet e IPv4 y reserva al final
+el área rayada del FCS. Así se hace visible la frontera: `98 4f 9a 1c` se recupera
+del DOS1102, pero no existe todavía durante la transferencia SPI.
+
+== Salida HEX
+
+.Trama ICMP 00 reconstruida en hexadecimal
+[source,text]
+----
+include::../../../../build/captures/icmp-00.hex[]
+----
+
+== Wireshark CLI y GUI
+
+TShark disecciona esta misma trama como ICMP Echo Request tipo 8, secuencia 29,
+TTL 128 y payload de 32 bytes `00`. Con las opciones de verificación activadas,
+el FCS `0x984f9a1c` y los checksums IPv4 e ICMP constan como correctos.
+
+.Comando TShark para exportar la disección PDML
+[source,sh]
+----
+tshark -r build/captures/icmp-00.pcapng -n \\
+  -o eth.check_fcs:true -o ip.check_checksum:true -T pdml
+----
+
+PDML es el XML de disección de TShark. `pos` y `size` expresan desplazamiento y
+longitud en bytes; `show` es el valor interpretado y `value`, los bytes en
+hexadecimal. El FCS ocupa los bytes 74-77.
+
+.Fragmento PDML con cabeceras Ethernet, IPv4 e ICMP
+[source,xml]
+----
+<proto name="eth" size="14" pos="0">
+  <field name="eth.dst" size="6" pos="0" show="02:00:00:00:00:02" value="020000000002"/>
+  <field name="eth.src" size="6" pos="6" show="02:00:00:00:00:01" value="020000000001"/>
+  <field name="eth.type" size="2" pos="12" show="0x0800" value="0800"/>
+  <field name="eth.fcs" size="4" pos="74" show="0x984f9a1c" value="984f9a1c"/>
+</proto>
+<proto name="ip" size="20" pos="14">
+  <field name="ip.len" size="2" pos="16" show="60" value="003c"/>
+  <field name="ip.checksum.status" pos="24" show="1" showname="Header checksum status: Good"/>
+</proto>
+<proto name="icmp" size="40" pos="34">
+  <field name="icmp.type" size="1" pos="34" show="8" value="08"/>
+  <field name="icmp.seq" size="2" pos="40" show="29" value="001d"/>
+</proto>
+----
+
+La captura GUI muestra este mismo paquete en Wireshark con el árbol de
+protocolos y sus bytes visibles. En la imagen, el FCS aparece como
+`Unverified`; la verificación está activada en el comando TShark, por lo que el
+CLI sí lo marca como correcto.
+
+.Trama ICMP 00 abierta en Wireshark
+image::../assets/wireshark-screenshot.png[Captura de pantalla de Wireshark para icmp-00.pcapng,align="center"]

@@ -1,0 +1,41 @@
+[graphviz, ethernet-frame-layout, svg]
+....
+digraph ethernet_frame {
+  graph [bgcolor="transparent", margin="0.05", pad="0.05"];
+  node [shape=plain, fontname="DejaVu Sans"];
+
+  frame [label=<
+    <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6">
+      <TR>
+        <TD COLSPAN="7" BGCOLOR="#D9EAF7"><B>TRAMA ETHERNET DE MUESTRA, 10BASE-T</B></TD>
+      </TR>
+      <TR>
+        <TD BGCOLOR="#EAF3F8"><B>PREÁMBULO</B><BR/>7 B</TD>
+        <TD BGCOLOR="#EAF3F8"><B>SFD</B><BR/>1 B</TD>
+        <TD BGCOLOR="#EAF3F8"><B>MAC destino</B><BR/>6 B</TD>
+        <TD BGCOLOR="#EAF3F8"><B>MAC origen</B><BR/>6 B</TD>
+        <TD BGCOLOR="#EAF3F8"><B>EtherType</B><BR/>2 B</TD>
+        <TD BGCOLOR="#EAF3F8"><B>Datos + relleno</B><BR/>46 B</TD>
+        <TD BGCOLOR="#EAF3F8"><B>FCS</B><BR/>4 B</TD>
+      </TR>
+      <TR>
+        <TD>55 × 7</TD>
+        <TD>D5</TD>
+        <TD>02:00:00<BR/>00:00:02</TD>
+        <TD>02:00:00<BR/>00:00:01</TD>
+        <TD>88 B5</TD>
+        <TD>DE AD BE EF<BR/>+ 42 × 00</TD>
+        <TD>06 54 45 F9</TD>
+      </TR>
+      <TR>
+        <TD COLSPAN="2">medio físico</TD>
+        <TD>(0)</TD>
+        <TD>(6)</TD>
+        <TD>(12)</TD>
+        <TD>(14 … 59)</TD>
+        <TD>(60 … 63)</TD>
+      </TR>
+    </TABLE>
+  >];
+}
+....
